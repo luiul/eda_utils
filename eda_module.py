@@ -1,16 +1,17 @@
-# In case chatPGT does not finish code suggestion see: https://www.reddit.com/r/OpenAI/comments/zgkulg/chatgpt_often_will_not_finish_its_code_or/
-# Examples for prompts to finish code suggestion: 
+# In case chatPGT does not finish code suggestion see https://www.reddit.com/r/OpenAI/comments/zgkulg/chatgpt_often_will_not_finish_its_code_or/
+# --- Examples for prompts to finish code suggestion ---
 # Finish your answer
 # Continue from the last line
 # Print the rest of the code without reprinting what you've just showed me
 # Finish the code. Do not print the full code again, just a missing part from last answer
+
 
 # python libs
 import os 
 import glob 
 from collections import OrderedDict 
 import re 
-from typing import List, Tuple # for type hinting
+from typing import List, Tuple, Union
 import warnings # to ignore (some) warnings
 
 # data manipulation libs
@@ -158,30 +159,30 @@ def flatten_multiindex(df: pd.DataFrame) -> List[str]:
     return cols
 
 
-def weighted_avg(group: pd.DataFrame) -> float:
+def weighted_avg(group: pd.DataFrame, weight_col: str, val_col: str) -> float:
     """Calculate weighted average of values in a group of rows.
 
     Args:
         group (pd.DataFrame): Group of rows to calculate weighted average for.
+        weight_col (str): Name of the column to use as weights in the weighted average calculation.
+        val_col (str): Name of the column to calculate the weighted average of.
 
     Returns:
         float: Weighted average of values in the group.
     """
-    w: pd.Series = group['weight_col']
-    v: pd.Series = group['val_col']
+    w: pd.Series = group[weight_col]
+    v: pd.Series = group[val_col]
     total_weight: float = w.sum()
     if total_weight == 0:
-        raise ValueError("Sum of weights in group is zero")
+        raise ZeroDivisionError("The sum of weights is zero.")
     return (w * v).sum() / total_weight
 
-def group_weighted_avg(
-    df: pd.DataFrame, group_col: str, val_col: str, weight_col: str
-) -> pd.Series:
-    """Group a Pandas DataFrame by a column and calculate the weighted average of another column.
+def group_weighted_avg(df: pd.DataFrame, group_col: Union[str, List[str]], val_col: str, weight_col: str) -> pd.Series:
+    """Group a Pandas DataFrame by a column or a list of columns and calculate the weighted average of another column.
 
     Args:
         df (pd.DataFrame): DataFrame to group and calculate weighted average for.
-        group_col (str): Name of the column to group the DataFrame by.
+        group_col (Union[str, List[str]]): Name or list of the column(s) to group the DataFrame by.
         val_col (str): Name of the column to calculate the weighted average of.
         weight_col (str): Name of the column to use as weights in the weighted average calculation.
 
@@ -189,20 +190,23 @@ def group_weighted_avg(
         pd.Series: Series containing the weighted average of values in `val_col` for each group in the DataFrame,
             indexed by the unique values in the `group_col` column.
     """
-    grouped: pd.DataFrame = df.groupby(group_col).apply(weighted_avg)
+    grouped: pd.Series = df.groupby(group_col).apply(weighted_avg, weight_col, val_col)
     return grouped
-# Example usage
+
+# # Example usage
 # df: pd.DataFrame = pd.DataFrame({
 #     'group_col': ['A', 'A', 'B', 'B'],
-#     'val_col': [1, 2, 3, 4],
-#     'weight_col': [0.1, 0.2, 0.3, 0.4]
+#     'group_col2': ['C', 'C', 'C', 'E'],
+#     'values': [1, 2, 3, 4],
+#     'weights': [0.1, 0.2, 0.3, 0.4]
 # })
-# grouped: pd.Series = group_weighted_avg(df, 'group_col', 'val_col', 'weight_col')
+# grouped: pd.Series = group_weighted_avg(df, ['group_col','group_col2'], 'values', 'weights')
+
+# print(df)
+# print('\n')
 # print(grouped)
 
-
-
-# Other useful snippets
+# --- Other useful snippets ---
 
 # Create dict to map values based on an Excel table
 # mm = pd.read_clipboard().dropna()
