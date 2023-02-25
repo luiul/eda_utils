@@ -5,14 +5,13 @@
 # Print the rest of the code without reprinting what you've just showed me
 # Finish the code. Do not print the full code again, just a missing part from last answer
 
-
 # python libs
-import os 
-import glob 
-from collections import OrderedDict 
-import re 
-from typing import List, Tuple, Union
-import warnings # to ignore (some) warnings
+import os
+import glob
+from collections import OrderedDict
+import re
+from typing import List, Tuple, Union, Optional
+import warnings  # to ignore (some) warnings
 
 # data manipulation libs
 import numpy as np
@@ -46,6 +45,7 @@ pd.options.display.float_format = '{:_.2f}'.format
 
 warnings.filterwarnings("ignore")
 
+
 def table(df: pd.DataFrame) -> pd.DataFrame:
     """Print basic dataframe stats in a tabular form. General EDA function to get a first overview and sample of the data frame
 
@@ -58,7 +58,7 @@ def table(df: pd.DataFrame) -> pd.DataFrame:
     rows: List[List] = []  # initialize an empty list to store rows
     row_no: int = 1  # initialize the row number
     max_list_len: int = 8  # maximum length of a list to be displayed in the unique values column
-    max_concat_list_len: int = 75 # maximum length of a concatenated list to be displayed in the unique values column
+    max_concat_list_len: int = 75  # maximum length of a concatenated list to be displayed in the unique values column
 
     # Loop through each column in the dataframe and create a row for the table
     for row_no, col in enumerate(df):
@@ -70,24 +70,33 @@ def table(df: pd.DataFrame) -> pd.DataFrame:
         #   - the number of unique values (if the number of unique values is above the threshold)
         #   - the unique values themselves (if the number of unique values is below the threshold)
         if type(df[col].iloc[0]) == np.ndarray:
-            col_transformed: pd.Series = pd.Series([','.join(map(str, l)) for l in df[col]]).sort_values()  # convert array values to a string with elements separated by commas
-            row.extend([f'{col_transformed.nunique():_}'])  # add the number of unique values to the row
+            col_transformed: pd.Series = pd.Series([
+                ','.join(map(str, l)) for l in df[col]
+            ]).sort_values(
+            )  # convert array values to a string with elements separated by commas
+            row.extend([f'{col_transformed.nunique():_}'
+                        ])  # add the number of unique values to the row
             row.extend([
                 f'{col_transformed.isna().sum():_}',  # add the number of NAs in the column to the row
                 f'{len(df) - np.count_nonzero(col_transformed):_}'  # add the number of zeros and falses in the column to the row
             ])
         elif df[col].nunique() > max_list_len:
-            row.extend([f'{df[col].nunique():_}'])  # add the number of unique values to the row
+            row.extend([f'{df[col].nunique():_}'
+                        ])  # add the number of unique values to the row
             row.extend([
                 f'{df[col].isna().sum():_}',  # add the number of NAs in the column to the row
                 f'{len(df) - np.count_nonzero(df[col]):_}'  # add the number of zeros and falses in the column to the row
             ])
         else:
-            unique_values: List = sorted(list(df[col].unique())) # sort the unique values
-            unique_values_concat: str = ', '.join(map(str, unique_values))  # concatenate the unique values into a string
+            unique_values: List = sorted(list(
+                df[col].unique()))  # sort the unique values
+            unique_values_concat: str = ', '.join(map(
+                str,
+                unique_values))  # concatenate the unique values into a string
             if len(unique_values_concat) > max_concat_list_len:
                 unique_values_concat = f"{unique_values_concat[:max_concat_list_len-3]}..."  # add three dots if the concatenated values exceed the threshold
-            row.append(unique_values_concat)  # add the list of unique values to the row
+            row.append(unique_values_concat
+                       )  # add the list of unique values to the row
             row.extend([
                 f'{df[col].isna().sum():_}',  # add the number of NAs in the column to the row
                 f'{len(df) - np.count_nonzero(df[col]):_}'  # add the number of zeros and falses in the column to the row
@@ -98,11 +107,12 @@ def table(df: pd.DataFrame) -> pd.DataFrame:
     # Create and print table using the tabulate library
     table: str = tabulate(
         rows,
-        headers=["n", "col_name", "dtype","unique_values", "NAs", "0s/Fs"],
+        headers=["n", "col_name", "dtype", "unique_values", "NAs", "0s/Fs"],
         tablefmt="pipe")
     print(f"Number of records: {len(df):_}\n")
     print(table)
     return df.sample(5)  # return a sample of the dataframe
+
 
 def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
     """Convert a list column to string in a Pandas DataFrame
@@ -120,8 +130,9 @@ def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
     # Iterate over each column and convert it to a string
     for col in cols:
         df[col] = pd.Series([','.join(map(str, l)) for l in df[col]])
-        
+
     return df
+
 
 def all_lists_to_string(main_df: pd.DataFrame) -> pd.DataFrame:
     """Convert all list columns to string in a Pandas DataFrame
@@ -137,7 +148,8 @@ def all_lists_to_string(main_df: pd.DataFrame) -> pd.DataFrame:
 
     # Iterate over each column and convert it to a string if it's a list or ndarray
     for col in df.columns:
-        if isinstance(df[col].iloc[0], list) or isinstance(df[col].iloc[0], np.ndarray):
+        if isinstance(df[col].iloc[0], list) or isinstance(
+                df[col].iloc[0], np.ndarray):
             df[col] = pd.Series([', '.join(map(str, l)) for l in df[col]])
 
     return df
@@ -154,7 +166,7 @@ def flatten_multiindex(df: pd.DataFrame) -> List[str]:
     """
     # Combine the first and second level column names into a single string with an underscore separator
     cols: List[str] = ['_'.join(col).strip('_') for col in df.columns.values]
-    
+
     # Return the list of column names
     return cols
 
@@ -177,7 +189,9 @@ def weighted_avg(group: pd.DataFrame, weight_col: str, val_col: str) -> float:
         raise ZeroDivisionError("The sum of weights is zero.")
     return (w * v).sum() / total_weight
 
-def group_weighted_avg(df: pd.DataFrame, group_col: Union[str, List[str]], val_col: str, weight_col: str) -> pd.Series:
+def group_weighted_avg(df: pd.DataFrame, group_col: Union[str, List[str]],
+                       val_col: str, weight_col: str,
+                       col_name: str) -> pd.DataFrame:
     """Group a Pandas DataFrame by a column or a list of columns and calculate the weighted average of another column.
 
     Args:
@@ -185,34 +199,73 @@ def group_weighted_avg(df: pd.DataFrame, group_col: Union[str, List[str]], val_c
         group_col (Union[str, List[str]]): Name or list of the column(s) to group the DataFrame by.
         val_col (str): Name of the column to calculate the weighted average of.
         weight_col (str): Name of the column to use as weights in the weighted average calculation.
+        col_name (str): Name of the resulting column.
 
     Returns:
-        pd.Series: Series containing the weighted average of values in `val_col` for each group in the DataFrame,
+        pd.DataFrame: DataFrame containing the weighted average of values in `val_col` for each group in the DataFrame,
             indexed by the unique values in the `group_col` column.
     """
-    grouped: pd.Series = df.groupby(group_col).apply(weighted_avg, weight_col, val_col)
+    grouped: pd.DataFrame = df.groupby(group_col, as_index=False).apply(
+        weighted_avg, weight_col, val_col)
+    grouped.columns = grouped.columns.fillna(col_name)
     return grouped
 
-# # Example usage
+
+def group_merge_weighted_avg(
+        df: pd.DataFrame,
+        group_col: Union[str, List[str]],
+        val_col: str,
+        weight_col: str,
+        col_name: str,
+        merge_col: Optional[Union[str, List[str]]] = None) -> pd.DataFrame:
+    """Group a Pandas DataFrame by a column or a list of columns, calculate the weighted average of another column, and merge the results back to the original DataFrame.
+
+    Args:
+        df (pd.DataFrame): DataFrame to group and calculate weighted average for.
+        group_col (Union[str, List[str]]): Name or list of the column(s) to group the DataFrame by.
+        val_col (str): Name of the column to calculate the weighted average of.
+        weight_col (str): Name of the column to use as weights in the weighted average calculation.
+        col_name (str): Name of the resulting column.
+        merge_col (Union[str, List[str]], optional): Name or list of the column(s) to merge the resulting DataFrame on. If None, defaults to group_col. Defaults to None.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the original columns and the new column with the weighted average for each group.
+    """
+    grouped: pd.Series = group_weighted_avg(df, group_col, val_col, weight_col,
+                                            col_name)
+    merge_col = merge_col or group_col
+    merged: pd.DataFrame = pd.merge(df, grouped, how="left", on=merge_col)
+    # merged.drop(columns=group_col, inplace=True)
+    return merged
+
+
+# # ------------------ Other useful snippets ------------------
+
+# # Create dict to map values based on an Excel table
+# mm = pd.read_clipboard().dropna()
+# mapping = mm.set_index('col_name')['rename_to'].to_dict()
+
+# # Reorder cols based on an Excel col
+# mm = pd.read_clipboard().dropna()
+# oo = mm.iloc[:, 0].tolist()
+# df = df[oo]
+
+# # ------------------ Examples ------------------
 # df: pd.DataFrame = pd.DataFrame({
 #     'group_col': ['A', 'A', 'B', 'B'],
 #     'group_col2': ['C', 'C', 'C', 'E'],
 #     'values': [1, 2, 3, 4],
 #     'weights': [0.1, 0.2, 0.3, 0.4]
 # })
-# grouped: pd.Series = group_weighted_avg(df, ['group_col','group_col2'], 'values', 'weights')
+
+# group_test = ['group_col',['group_col','group_col2']]
 
 # print(df)
-# print('\n')
-# print(grouped)
 
-# --- Other useful snippets ---
-
-# Create dict to map values based on an Excel table
-# mm = pd.read_clipboard().dropna()
-# mapping = mm.set_index('col_name')['rename_to'].to_dict()
-
-# Reorder cols based on an Excel col
-# mm = pd.read_clipboard().dropna()
-# oo = mm.iloc[:, 0].tolist()
-# df = df[oo]
+# for test in group_test:
+#     print('\n')
+#     print(f'------------------ Grouping by: {test} ------------------')
+#     grouped= group_weighted_avg(df, test, 'values', 'weights', 'wavg')
+#     grouped_merge= group_merge_weighted_avg(df, test, 'values', 'weights', 'wavg')
+#     print(grouped)
+#     print(grouped_merge)
