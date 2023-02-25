@@ -189,6 +189,7 @@ def weighted_avg(group: pd.DataFrame, weight_col: str, val_col: str) -> float:
         raise ZeroDivisionError("The sum of weights is zero.")
     return (w * v).sum() / total_weight
 
+
 def group_weighted_avg(df: pd.DataFrame, group_col: Union[str, List[str]],
                        val_col: str, weight_col: str,
                        col_name: str) -> pd.DataFrame:
@@ -239,16 +240,87 @@ def group_merge_weighted_avg(
     return merged
 
 
-# # ------------------ Other useful snippets ------------------
+def create_store_mapping(file_path: str) -> dict:
+    """Reads, saves, or creates a mapping file and returns a dictionary of column name mappings.
 
-# # Create dict to map values based on an Excel table
-# mm = pd.read_clipboard().dropna()
-# mapping = mm.set_index('col_name')['rename_to'].to_dict()
+    Args:
+        file_path: The path to the mapping file.
 
-# # Reorder cols based on an Excel col
-# mm = pd.read_clipboard().dropna()
-# oo = mm.iloc[:, 0].tolist()
-# df = df[oo]
+    Returns:
+        A dictionary of column name mappings, where the keys are the original column names and the values are the new
+        column names.
+
+    """
+    # If file exists, load it; otherwise, read clipboard and save to file
+    if os.path.isfile(file_path):
+        read_data = pd.read_csv(file_path)
+    else:
+        # Read clipboard and create mapping dataframe
+        read_data = pd.read_clipboard().dropna()
+        # Save mapping dataframe to file
+        read_data.to_csv(file_path, index=False)
+
+    # Create mapping dictionary
+    mapping = read_data.set_index("col_name")["rename_to"].to_dict()
+
+    return mapping
+
+
+def create_store_col_order(file_path: str) -> list:
+    """Creates a column order mapping based on an Excel table, saves it to a file, and returns a list of column names.
+
+    If the mapping file exists at the specified file path, the function loads the mapping file and returns a list of
+    column names in the order specified in the file. If the mapping file does not exist, the function reads the clipboard
+    to create the mapping dataframe, saves it to file, and returns a list of column names in the order specified in the
+    clipboard data.
+
+    Args:
+        file_path: The path to the mapping file.
+
+    Returns:
+        A list of column names in the order specified by the Excel table.
+
+    """
+    # If file exists, load it; otherwise, read clipboard and save to file
+    if os.path.isfile(file_path):
+        read_data = pd.read_csv(file_path)
+    else:
+        # Read clipboard and create mapping dataframe
+        read_data = pd.read_clipboard().dropna()
+        # Save mapping dataframe to file
+        read_data.to_csv(file_path, index=False)
+
+    # Create col order list
+    col_order = read_data.iloc[:, 0].tolist()
+
+    return col_order
+
+
+def touch(my_file: str) -> str:
+    """Returns the file path for a file with the specified name located in the 'data' directory of the current working
+    directory.
+
+    Args:
+        my_file: A string representing the name of the file to create or retrieve the path to.
+
+    Returns:
+        A string representing the file path for a file with the specified name located in the 'data' directory of the
+        current working directory.
+
+    """
+    current_directory = os.getcwd()
+    data_file_path = os.path.join(current_directory, 'data', my_file)
+    return data_file_path
+
+
+# def pwd() -> str:
+#     """Returns the current working directory.
+
+#     Returns:
+#         A string representing the current working directory.
+
+#     """
+#     return os.getcwd()
 
 # # ------------------ Examples ------------------
 # df: pd.DataFrame = pd.DataFrame({
