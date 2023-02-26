@@ -3,7 +3,7 @@
 # Finish your answer
 # Continue from the last line
 # Print the rest of the code without reprinting what you've just showed me
-# Finish the code. Do not print the full code again, just a missing part from last answer
+# Finish the code in a code block. Do not print the full code again, just a missing part from last answer
 
 # python libs
 import os
@@ -312,7 +312,7 @@ def touch(my_file: str) -> str:
     data_file_path = os.path.join(current_directory, 'data', my_file)
     return data_file_path
 
-
+# # ------------------------------------ Other functinos ------------------------------------
 # def pwd() -> str:
 #     """Returns the current working directory.
 
@@ -322,7 +322,7 @@ def touch(my_file: str) -> str:
 #     """
 #     return os.getcwd()
 
-# # ------------------ Examples ------------------
+# # ------------------------------------ Examples ------------------------------------
 # df: pd.DataFrame = pd.DataFrame({
 #     'group_col': ['A', 'A', 'B', 'B'],
 #     'group_col2': ['C', 'C', 'C', 'E'],
@@ -341,3 +341,16 @@ def touch(my_file: str) -> str:
 #     grouped_merge= group_merge_weighted_avg(df, test, 'values', 'weights', 'wavg')
 #     print(grouped)
 #     print(grouped_merge)
+
+# # ------------------------------------ Useful snippets ------------------------------------
+# # Create a new DataFrame with the unique SKU counts for each order_number
+# sku_counts = df.groupby('order_number')['sku'].nunique().rename('sku_count').reset_index()
+
+# # Merge the original DataFrame with the new DataFrame
+# df_merged = df.merge(sku_counts, on='order_number')
+
+# # Sort the merged DataFrame by the unique SKU counts
+# df_sorted = df_merged.sort_values(by='sku_count', ascending=False)
+
+# # Print the sorted DataFrame
+# df_sorted
