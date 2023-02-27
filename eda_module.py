@@ -1,10 +1,3 @@
-# In case chatPGT does not finish code suggestion see https://www.reddit.com/r/OpenAI/comments/zgkulg/chatgpt_often_will_not_finish_its_code_or/
-# --- Examples for prompts to finish code suggestion ---
-# Finish your answer
-# Continue from the last line
-# Print the rest of the code without reprinting what you've just showed me
-# Finish the code in a code block. Do not print the full code again, just a missing part from last answer
-
 # python libs
 import os
 import glob
@@ -312,6 +305,8 @@ def touch(my_file: str) -> str:
     data_file_path = os.path.join(current_directory, 'data', my_file)
     return data_file_path
 
+
+
 # # ------------------------------------ Other functinos ------------------------------------
 # def pwd() -> str:
 #     """Returns the current working directory.
@@ -343,14 +338,65 @@ def touch(my_file: str) -> str:
 #     print(grouped_merge)
 
 # # ------------------------------------ Useful snippets ------------------------------------
+# # Determine what columns to group by
+# group = 'order_number'
+
 # # Create a new DataFrame with the unique SKU counts for each order_number
-# sku_counts = df.groupby('order_number')['sku'].nunique().rename('sku_count').reset_index()
+# sku_counts = df.groupby(group)['sku'].nunique().rename('sku_count').reset_index()
 
 # # Merge the original DataFrame with the new DataFrame
-# df_merged = df.merge(sku_counts, on='order_number')
+# df_merged = df.merge(sku_counts, on=group)
 
 # # Sort the merged DataFrame by the unique SKU counts
 # df_sorted = df_merged.sort_values(by='sku_count', ascending=False)
 
 # # Print the sorted DataFrame
 # df_sorted
+
+# def raw_prices_agg(df: pd.DataFrame, weight_kg: str, spend_eur: str,
+#                    price_eur: str) -> pd.Series:
+#     """
+#     Calculates various raw price aggregates for a given input DataFrame.
+
+#     Args:
+#         df: The input DataFrame.
+#         weight_kg: The name of the column used as weight in kilograms.
+#         spend_eur: The name of the column used as spend in EUR.
+#         price_eur: The name of the column used as price in EUR.
+
+#     Returns:
+#         A pandas Series containing the calculated raw price aggregates.
+#     """
+#     o_dict: OrderedDict = OrderedDict()
+    
+#     sum_volume: float = df[weight_kg].sum()
+    
+#     weight_eur: pd.Series = df[weight_kg] * df[price_eur]
+#     avg_price_eur: float = weight_eur.sum() / df[weight_kg].sum()
+#     sum_spend_eur: float = df[spend_eur].sum()
+    
+#     o_dict['sum_volume'] = sum_volume
+#     o_dict['avg_price_eur'] = avg_price_eur
+#     o_dict['sum_spend_eur'] = sum_spend_eur
+#     return pd.Series(o_dict)
+
+# # Define a sample DataFrame
+# data = {
+#     'market': ['A', 'A', 'A', 'B'],
+#     'order_number': [1, 1, 2, 2],
+#     'sku': ['A', 'B', 'C', 'D'],
+#     'weight_kg': [10, 20, 30, 40],
+#     'order_value_eur': [100, 200, 300, 400],
+#     'kg_price': [5, 10, 15, 20]
+# }
+# df = pd.DataFrame(data)
+# df
+# # Call the raw_prices_agg function to calculate the raw price aggregates
+# df.groupby('market sku'.split()).apply(raw_prices_agg, 'weight_kg', 'order_value_eur', 'kg_price')
+
+# # ------------------------------------ ChatGPT ------------------------------------
+# In case chatPGT does not finish code suggestion see https://www.reddit.com/r/OpenAI/comments/zgkulg/chatgpt_often_will_not_finish_its_code_or/
+# Finish your answer
+# Continue from the last line
+# Print the rest of the code without reprinting what you've just showed me
+# Finish the code in a code block. Do not print the full code again, just a missing part from last answer
