@@ -81,8 +81,8 @@ def table(df: pd.DataFrame) -> pd.DataFrame:
                 f'{len(df) - np.count_nonzero(df[col]):_}'  # add the number of zeros and falses in the column to the row
             ])
         else:
-            unique_values: List = sorted(list(
-                df[col].unique()))  # sort the unique values
+            # unique_values: List = sorted(list(df[col].unique()))  # sort the unique values
+            unique_values: List = sorted([str(val) for val in df[col].unique()]) # cast to string before sorting (otherwise comparisson fails)
             unique_values_concat: str = ', '.join(map(
                 str,
                 unique_values))  # concatenate the unique values into a string
@@ -393,6 +393,36 @@ def touch(my_file: str) -> str:
 # df
 # # Call the raw_prices_agg function to calculate the raw price aggregates
 # df.groupby('market sku'.split()).apply(raw_prices_agg, 'weight_kg', 'order_value_eur', 'kg_price')
+
+# # ------------------------------------ Workflows ------------------------------------
+
+## Benchmark and best price
+
+# 1. Remove irrelevant markets
+# 2. Lean data
+#    1. Map DCs
+#    2. Drop blank DCs
+#    3. Get median_unit_price_loc_country_dc_sku_currency
+#    4. Remove outliers based on the above median
+#    5. Keep only G and ML
+# 3. Get order_weight_kg
+# 4. Get kg_price
+# 5. Get benchmark_price_qtly_cln in a dataframe
+#    1. Group by quarter, clean_name, uom
+#    2. Get the wavg, values = kg_price and weight=order_weight_kg
+# 6. Get best_price_qtly_cln in a dataframe
+#    1. Group by quarter, (country,) dc, clean_name, uom
+#    2. Get the wavg, values = kg_price and weight=order_weight_kg
+#    3. Group by quarter, clean_name, uom
+#    4. Get the min wavg
+# 7. Create benchmark dataframe by merge on the group quarter, clean_name, uom, df + benchmark_price_qtly_cln + best_price_qtly_cln
+# 8. Create country-level aggregate dataframe for data entry
+#    1. Group by quarter, country, (currency,) dc, cat, subcat, fam, clean_name, uom
+#    2. Get the cume_weight, wavg_price, and cume_spend in the group as a Series and cast it to a dataframe
+# 9. Left-merge country-level aggreage dataframe with benchmark dataframe on quarter, clean_name, uom
+# 10. Calculate savings
+#     1. Current_spend - weight * benchmark_price
+#     2. Current_spend - weight * best_price
 
 # # ------------------------------------ ChatGPT ------------------------------------
 # In case chatPGT does not finish code suggestion see https://www.reddit.com/r/OpenAI/comments/zgkulg/chatgpt_often_will_not_finish_its_code_or/
