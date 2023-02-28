@@ -82,7 +82,9 @@ def table(df: pd.DataFrame) -> pd.DataFrame:
             ])
         else:
             # unique_values: List = sorted(list(df[col].unique()))  # sort the unique values
-            unique_values: List = sorted([str(val) for val in df[col].unique()]) # cast to string before sorting (otherwise comparisson fails)
+            unique_values: List = sorted([
+                str(val) for val in df[col].unique()
+            ])  # cast to string before sorting (otherwise comparisson fails)
             unique_values_concat: str = ', '.join(map(
                 str,
                 unique_values))  # concatenate the unique values into a string
@@ -233,6 +235,21 @@ def group_merge_weighted_avg(
     return merged
 
 
+def create_store_table(file_path: str) -> pd.DataFrame:
+    # If file exists, load it; otherwise, read clipboard and save to file
+    if os.path.isfile(file_path):
+        read_data = pd.read_csv(file_path)
+    else:
+        # Read clipboard and create mapping dataframe
+        read_data = pd.read_clipboard()
+        # Save mapping dataframe to file
+        read_data.to_csv(file_path, index=False)
+
+    # Create mapping dictionary
+    table = read_data
+    return table
+
+
 def create_store_mapping(file_path: str) -> dict:
     """Reads, saves, or creates a mapping file and returns a dictionary of column name mappings.
 
@@ -254,8 +271,8 @@ def create_store_mapping(file_path: str) -> dict:
         read_data.to_csv(file_path, index=False)
 
     # Create mapping dictionary
-    mapping = read_data.set_index("col_name")["rename_to"].to_dict()
-
+    mapping = read_data.set_index(
+        read_data.columns[0])[read_data.columns[1]].to_dict()
     return mapping
 
 
@@ -305,6 +322,21 @@ def touch(my_file: str) -> str:
     data_file_path = os.path.join(current_directory, 'data', my_file)
     return data_file_path
 
+
+def print_list(obj):
+    """
+    Given an object, check if it is a list and print each element of the list on a new line.
+
+    Args:
+        obj: An object to print. If obj is not a list, it will be cast to a list.
+
+    Returns:
+        None
+    """
+    if not isinstance(obj, list):
+        obj = list(obj)
+    for item in obj:
+        print(item)
 
 
 # # ------------------------------------ Other functinos ------------------------------------
@@ -368,13 +400,13 @@ def touch(my_file: str) -> str:
 #         A pandas Series containing the calculated raw price aggregates.
 #     """
 #     o_dict: OrderedDict = OrderedDict()
-    
+
 #     sum_volume: float = df[weight_kg].sum()
-    
+
 #     weight_eur: pd.Series = df[weight_kg] * df[price_eur]
 #     avg_price_eur: float = weight_eur.sum() / df[weight_kg].sum()
 #     sum_spend_eur: float = df[spend_eur].sum()
-    
+
 #     o_dict['sum_volume'] = sum_volume
 #     o_dict['avg_price_eur'] = avg_price_eur
 #     o_dict['sum_spend_eur'] = sum_spend_eur
