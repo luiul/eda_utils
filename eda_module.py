@@ -50,7 +50,7 @@ def table(df: pd.DataFrame) -> pd.DataFrame:
     """
     rows: List[List] = []  # initialize an empty list to store rows
     row_no: int = 1  # initialize the row number
-    max_list_len: int = 8  # maximum length of a list to be displayed in the unique values column
+    max_list_len: int = 10  # maximum length of a list to be displayed in the unique values column
     max_concat_list_len: int = 75  # maximum length of a concatenated list to be displayed in the unique values column
 
     # Loop through each column in the dataframe and create a row for the table
@@ -106,7 +106,11 @@ def table(df: pd.DataFrame) -> pd.DataFrame:
         tablefmt="pipe")
     print(f"Number of records: {len(df):_}\n")
     print(table)
-    return df.sample(5)  # return a sample of the dataframe
+    if len(df) > 5:
+        return df.sample(5)  # return a sample of the dataframe
+    else:
+        return df
+    # return df.sample(5)  # return a sample of the dataframe
 
 
 def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
@@ -322,7 +326,6 @@ def touch(my_file: str) -> str:
     data_file_path = os.path.join(current_directory, 'data', my_file)
     return data_file_path
 
-
 def print_list(obj):
     """
     Given an object, check if it is a list and print each element of the list on a new line.
@@ -337,6 +340,7 @@ def print_list(obj):
         obj = list(obj)
     for item in obj:
         print(item)
+
 
 
 # # ------------------------------------ Other functinos ------------------------------------
