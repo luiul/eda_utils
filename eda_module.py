@@ -466,3 +466,5 @@ def print_list(obj):
 # Continue from the last line
 # Print the rest of the code without reprinting what you've just showed me
 # Finish the code in a code block. Do not print the full code again, just a missing part from last answer
+# Act like an <expert in field you are asking about> that / based on <some specific guideline> and <ask the thing you want it to do>
+
