@@ -8,7 +8,7 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
 
     ```shell
     cd <parent_repo_path>
-    git submodule add https://github.com/hellofresh/bi-isa-utils eda_utils
+    git submodule add https://github.com/luiul/eda_utils.git eda_utils
     ```
 
 2. Make sure that the submodule is tracking the `master` (or `main`) branch
