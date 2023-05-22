@@ -62,6 +62,51 @@ The submodule will appear as a subfolder structure in the parent repo. From this
 from eda_utils.eda_module import eda_function
 ```
 
+The submodule can be utilized both in Jupyter notebooks and standalone Python scripts.
+
+### Importing eda_utils in Jupyter Notebooks
+
+To import `eda_utils` in a Jupyter notebook when the module resides in the parent directory, you can use the following code snippet:
+
+```python
+import os
+import sys
+
+current_path = os.getcwd()
+parent_path = os.path.dirname(current_path)
+
+sys.path.append(parent_path)
+
+import eda_utils
+```
+
+This script first gets the current working directory, and then gets the parent directory using `os.path.dirname()`. It then adds the parent directory to the system path before importing `eda_utils`.
+
+### Importing eda_utils in Python Scripts
+
+If you're working within a Python script, you can import `eda_utils` as follows:
+
+```python
+import os
+import sys
+
+# get the directory of the current script
+script_dir = os.path.dirname(os.path.realpath(__file__))
+
+# get the parent directory
+parent_dir = os.path.dirname(script_dir)
+
+# add the parent directory to the system path
+sys.path.append(parent_dir)
+
+# now we can import eda_utils
+import eda_utils
+```
+
+This script determines the directory of the current script and its parent directory, adds the parent directory to the system path, and then imports `eda_utils`.
+
+Please note: These solutions are quick workarounds, and they might not work in all situations. For larger and more complex projects, consider following Python packaging best practices or using a workaround with the `PYTHONPATH` environment variable.
+
 ## General considerations
 
 1. When pulling changes from remote in the **parent** repo, remember to always execute a `git submodule update --remote` command after `git pull`. `git pull` will only pull changes for the parent repo, you want to also update any changes from the submodule repo.
