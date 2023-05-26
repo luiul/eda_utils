@@ -11,7 +11,7 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
     git submodule add https://github.com/luiul/eda_utils.git eda_utils
     ```
 
-2. Make sure that the submodule is tracking the `main` (or `main`) branch
+2. Make sure that the submodule is tracking the `main`
 
     ```shell
     cd eda_utils
