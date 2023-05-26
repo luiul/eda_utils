@@ -11,11 +11,11 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
     git submodule add https://github.com/luiul/eda_utils.git eda_utils
     ```
 
-2. Make sure that the submodule is tracking the `master` (or `main`) branch
+2. Make sure that the submodule is tracking the `main` (or `main`) branch
 
     ```shell
     cd eda_utils
-    git checkout master
+    git checkout main
     ```
 
 3. Add a few entries to the `.gitmodules` file. These simplify the fetching of updates from the repo tracked as submodule in the current repo. Your `.gitmodules` file should look like this:
@@ -26,7 +26,7 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
     url = https://github.com/luiul/eda_utils
     ignore = all
     update = merge
-    branch = master
+    branch = main
     ```
 
 4. Commit changes to the parent repo, push etc. This will update the repo with the new submodule information
@@ -47,11 +47,50 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
     git submodule update
     ```
 
-3. Make sure that the submodule is tracking the `master` (or `main`) branch
+3. Make sure that the submodule is tracking the `main` (or `main`) branch
 
     ```shell
     cd eda_utils
-    git checkout master
+    git checkout main
+
+## Remove a submodule
+
+1. Delete the relevant section from the `.gitmodules` file.
+
+2. Deinitialize the submodule:
+
+    ```shell
+    git submodule deinit -f <path_to_submodule>
+    ```
+
+3. Remove the submodule from the git index and the local filesystem:
+
+    ```shell
+    git rm -f <path_to_submodule>
+    ```
+
+    If the above command results in an error, you may need to use the `--cached` option:
+
+    ```shell
+    git rm --cached <path_to_submodule>
+    ```
+
+4. Remove the actual submodule files:
+
+    ```shell
+    rm -rf .git/modules/<path_to_submodule>
+    ```
+
+5. Commit the changes:
+
+    ```shell
+    git commit -m "Removed submodule"
+    ```
+
+6. Push the changes to the remote repository:
+
+    ```shell
+    git push origin master
     ```
 
 ## How to use the eda_utils in new or existing code
