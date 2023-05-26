@@ -22,14 +22,14 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
 
 ## 1. How to add to an existing repo
 
-1. Add the submodule to an existing repo. **Rename to `eda_utils`**
+1. Add the submodule to an existing repo:
 
     ```shell
     cd <parent_repo_path>
     git submodule add https://github.com/luiul/eda_utils.git eda_utils
     ```
 
-2. Make sure that the submodule is tracking the `main`
+2. Make sure that the submodule is tracking the `main`:
 
     ```shell
     cd eda_utils
