@@ -1,8 +1,26 @@
+<!-- omit from toc -->
 # Python EDA Utils
+
+<!-- omit from toc -->
+## Description
 
 Collection of EDA functions for exploring, understanding, and visualizing data (including cleaning, transforming, summarizing, and visualizing data). This repo is typically used as a submodule in other repos. A complete guide can be found [here](https://git-scm.com/book/en/v2/Git-Tools-Submodules). A summary is provided below.
 
-## How to add to an existing repo
+<!-- omit from toc -->
+## Table of Contents
+- [1. How to add to an existing repo](#1-how-to-add-to-an-existing-repo)
+- [2. How to clone a repo that already has submodules](#2-how-to-clone-a-repo-that-already-has-submodules)
+- [3. Update a submodule](#3-update-a-submodule)
+- [4. Remove a submodule](#4-remove-a-submodule)
+- [5. How to use the eda\_utils in new or existing code](#5-how-to-use-the-eda_utils-in-new-or-existing-code)
+  - [5.1. Importing eda\_utils in Jupyter Notebooks](#51-importing-eda_utils-in-jupyter-notebooks)
+  - [5.2. Importing eda\_utils in Python Scripts](#52-importing-eda_utils-in-python-scripts)
+- [6. General considerations](#6-general-considerations)
+- [7. Create requirement for Conda environment](#7-create-requirement-for-conda-environment)
+
+
+
+## 1. How to add to an existing repo
 
 1. Add the submodule to an existing repo. **Rename to `eda_utils`**
 
@@ -31,7 +49,7 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
 
 4. Commit changes to the parent repo, push etc. This will update the repo with the new submodule information
 
-## How to clone a repo that already has submodules
+## 2. How to clone a repo that already has submodules
 
 1. Clone the parent repo
 
@@ -53,7 +71,53 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
     cd eda_utils
     git checkout main
 
-## Remove a submodule
+## 3. Update a submodule
+
+To update the contents of a submodule, you should follow these steps:
+
+1. Change to the submodule directory:
+
+    ```shell
+    cd <parent_repo_path>
+    ```
+
+2. Checkout the desired branch:
+
+    ```shell
+    git checkout main
+    ```
+
+3. Pull from the remote:
+
+    ```shell
+    git pull origin main
+    ```
+
+4. Change back to your project root:
+
+    ```shell
+    cd ..
+    ```
+
+5. Add the updated submodule changes:
+
+    ```shell
+    git add <parent_repo_path>
+    ```
+
+6. Commit the changes:
+
+    ```shell
+    git commit -m "Updated submodule"
+    ```
+
+7. Push the changes to your remote repository:
+
+    ```shell
+    git push origin main
+    ```
+
+## 4. Remove a submodule
 
 1. Delete the relevant section from the `.gitmodules` file.
 
@@ -90,10 +154,10 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
 6. Push the changes to the remote repository:
 
     ```shell
-    git push origin master
+    git push origin main
     ```
 
-## How to use the eda_utils in new or existing code
+## 5. How to use the eda_utils in new or existing code
 
 The submodule will appear as a subfolder structure in the parent repo. From this point all functions that exist in the `eda_utils/eda_module` folders can be imported and used in the main repo's code. For example:
 
@@ -103,7 +167,7 @@ from eda_utils.eda_module import eda_function
 
 The submodule can be utilized both in Jupyter notebooks and standalone Python scripts.
 
-### Importing eda_utils in Jupyter Notebooks
+### 5.1. Importing eda_utils in Jupyter Notebooks
 
 To import `eda_utils` in a Jupyter notebook when the module resides in the parent directory, you can use the following code snippet:
 
@@ -121,7 +185,7 @@ import eda_utils
 
 This script first gets the current working directory, and then gets the parent directory using `os.path.dirname()`. It then adds the parent directory to the system path before importing `eda_utils`.
 
-### Importing eda_utils in Python Scripts
+### 5.2. Importing eda_utils in Python Scripts
 
 If you're working within a Python script, you can import `eda_utils` as follows:
 
@@ -146,14 +210,14 @@ This script determines the directory of the current script and its parent direct
 
 Please note: These solutions are quick workarounds, and they might not work in all situations. For larger and more complex projects, consider following Python packaging best practices or using a workaround with the `PYTHONPATH` environment variable.
 
-## General considerations
+## 6. General considerations
 
 1. When pulling changes from remote in the **parent** repo, remember to always execute a `git submodule update --remote` command after `git pull`. `git pull` will only pull changes for the parent repo, you want to also update any changes from the submodule repo.
 2. Before commiting changes from a local branch make sure you execute a `git submodule update --remote` command. This will make sure that your current commit will point to the most recent commit of the submodule.
 3. To keep things simple, any changes to the `bi-isa-utils` code should be done in the original repo. You can then run a `git submodule update --remote` in any of the dependent repos to pull the changes.
 4. Keep in mind that the submodule has its own `requirements.txt`. This means that, whenever you're creating a virtual environment you need to also `pip install -r eda_utils/requirements.txt`.
 
-## Create requirement for Conda environment
+## 7. Create requirement for Conda environment
 
 1. Activate the desired Conda environment
 
