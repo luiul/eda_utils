@@ -5,6 +5,7 @@ from collections import OrderedDict
 import re
 from typing import List, Tuple, Union, Optional
 import warnings  # to ignore (some) warnings
+from pathlib import Path
 
 # data manipulation libs
 import numpy as np
