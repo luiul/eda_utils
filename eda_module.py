@@ -310,23 +310,6 @@ def create_store_col_order(file_path: str) -> list:
 
     return col_order
 
-
-def touch(my_file: str) -> str:
-    """Returns the file path for a file with the specified name located in the 'data' directory of the current working
-    directory.
-
-    Args:
-        my_file: A string representing the name of the file to create or retrieve the path to.
-
-    Returns:
-        A string representing the file path for a file with the specified name located in the 'data' directory of the
-        current working directory.
-
-    """
-    current_directory = os.getcwd()
-    data_file_path = os.path.join(current_directory, 'data', my_file)
-    return data_file_path
-
 def print_list(obj):
     """
     Given an object, check if it is a list and print each element of the list on a new line.
@@ -342,7 +325,32 @@ def print_list(obj):
     for item in obj:
         print(item)
 
+def make_dir(project_name: str) -> tuple:
+    """
+    Given a project name, create the necessary directories.
 
+    Parameters:
+    project_name (str): The name of the project.
+    """
+    # Define the main project directory path
+    # The directory is assumed to exist
+    pdir = Path.home() / 'projects' / project_name
+
+    # Define the notebook and data directory path
+    # These will be subdirectories within the main project directory
+    ndir = pdir / 'notebooks'
+    ddir = pdir / 'data'
+
+    # Make sure that both subdirectories exist
+    # This will create the directories if they do not exist
+    # An error will be thrown if the parent directory does not exist
+    for directory in [ndir, ddir]:
+        directory.mkdir(exist_ok=True)
+
+    print("Remember to assign the returned paths when calling this function:")
+    print("project_dir, notebooks_dir, data_dir = make_dir('your_project_name')")
+
+    return pdir, ndir, ddir
 
 # # ------------------------------------ Other functinos ------------------------------------
 # def pwd() -> str:
