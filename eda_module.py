@@ -331,7 +331,15 @@ def make_dir(project_name: str) -> tuple:
 
     Parameters:
     project_name (str): The name of the project.
+
+    Returns:
+    tuple: The Paths to the project, notebooks, and data directories.
     """
+    # Check that the project_name is not None or empty
+    if not project_name:
+        print("The project_name argument is missing or empty. Please provide a valid project name.")
+        return
+
     # Define the main project directory path
     # The directory is assumed to exist
     pdir = Path.home() / 'projects' / project_name
@@ -352,7 +360,7 @@ def make_dir(project_name: str) -> tuple:
 
     return pdir, ndir, ddir
 
-# # ------------------------------------ Other functinos ------------------------------------
+# # ------------------------------------ Retired funcs ------------------------------------
 # def pwd() -> str:
 #     """Returns the current working directory.
 
@@ -361,6 +369,22 @@ def make_dir(project_name: str) -> tuple:
 
 #     """
 #     return os.getcwd()
+
+# def touch(my_file: str) -> str:
+#     """Returns the file path for a file with the specified name located in the 'data' directory of the current working
+#     directory.
+
+#     Args:
+#         my_file: A string representing the name of the file to create or retrieve the path to.
+
+#     Returns:
+#         A string representing the file path for a file with the specified name located in the 'data' directory of the
+#         current working directory.
+
+#     """
+#     current_directory = os.getcwd()
+#     data_file_path = os.path.join(current_directory, 'data', my_file)
+#     return data_file_path
 
 # # ------------------------------------ Examples ------------------------------------
 # df: pd.DataFrame = pd.DataFrame({
@@ -477,3 +501,5 @@ def make_dir(project_name: str) -> tuple:
 # Finish the code in a code block. Do not print the full code again, just a missing part from last answer
 # Act like an <expert in field you are asking about> that / based on <some specific guideline> and <ask the thing you want it to do>
 
+# # ------------------------------------ Useful links ------------------------------------
+# Pathlib tutorial: https://github.com/Sven-Bo/pathlib-quickstart-guide/blob/master/Pathlib_Tutorial.ipynb
