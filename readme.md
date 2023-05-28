@@ -13,7 +13,7 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
 - [3. Update a submodule](#3-update-a-submodule)
 - [4. Remove a submodule](#4-remove-a-submodule)
 - [5. How to use the eda\_utils in new or existing code](#5-how-to-use-the-eda_utils-in-new-or-existing-code)
-  - [5.1. Importing eda\_utils in Jupyter Notebooks](#51-importing-eda_utils-in-jupyter-notebooks)
+  - [5.1. Importing eda\_utils in Python Scripts](#51-importing-eda_utils-in-python-scripts)
   - [5.2. Importing eda\_utils in Python Scripts](#52-importing-eda_utils-in-python-scripts)
 - [6. General considerations](#6-general-considerations)
 - [7. Create requirement for Conda environment](#7-create-requirement-for-conda-environment)
@@ -166,25 +166,61 @@ The submodule will appear as a subfolder structure in the parent repo. From this
 from eda_utils.eda_module import eda_function
 ```
 
-The submodule can be utilized both in Jupyter notebooks and standalone Python scripts.
+The submodule can be utilized both in Jupyter notebooks and standalone Python scripts. If the submodule is not in the same directory as the main repo, you will need to add the submodule's parent directory to the system path before importing the submodule. See the following sections for more details.
 
-### 5.1. Importing eda_utils in Jupyter Notebooks
+### 5.1. Importing eda_utils in Python Scripts
 
-To import `eda_utils` in a Jupyter notebook when the module resides in the parent directory, you can use the following code snippet:
+To import `eda_utils` in a Jupyter notebook when the module resides in the parent directory, you can use the following code snippets:
 
-```python
-import os
-import sys
+1. With `sys.path.append()`:
 
-current_path = os.getcwd()
-parent_path = os.path.dirname(current_path)
+    ```python
+    import sys
 
-sys.path.append(parent_path)
+    # Add the parent directory to the sys.path list
+    sys.path.append("../")
 
-import eda_utils
-```
+    # Import all symbols from eda_utils module
+    from eda_utils.eda_module import *
+    ```
 
-This script first gets the current working directory, and then gets the parent directory using `os.path.dirname()`. It then adds the parent directory to the system path before importing `eda_utils`.
+2. With `pathlib`:
+
+    ```python
+    from pathlib import Path
+    import sys
+
+    # Get the current working directory as a Path object
+    current_path = Path.cwd()
+
+    # Get the parent directory of the current working directory
+    parent_path = current_path.parent
+
+    # Convert the parent_path to a string and append it to sys.path
+    sys.path.append(str(parent_path))
+
+    # Import all symbols from eda_utils module
+    from eda_utils.eda_module import *
+    ```
+
+3. With `os`:
+
+    ```python
+    import os
+    import sys
+
+    # Get the current working directory
+    current_path = os.getcwd()
+
+    # Get the parent directory of the current working directory
+    parent_path = os.path.dirname(current_path)
+
+    # Append the parent_path to sys.path
+    sys.path.append(parent_path)
+
+    # Import all symbols from eda_utils module
+    from eda_utils.eda_module import *
+    ```
 
 ### 5.2. Importing eda_utils in Python Scripts
 

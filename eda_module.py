@@ -354,8 +354,9 @@ def make_dir(project_name: str) -> tuple:
     # An error will be thrown if the parent directory does not exist
     for directory in [ndir, ddir]:
         directory.mkdir(exist_ok=True)
-        print(f"Directory {directory} checked/created.")
+        print(f"Directory {directory} checked or created.")
 
+    print()
     print("Remember to assign the returned paths when calling this function:")
     print("project_dir, notebooks_dir, data_dir = make_dir('your_project_name')")
 
