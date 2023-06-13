@@ -3,7 +3,7 @@ import os
 import glob
 from collections import OrderedDict
 import re
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union, Optional, Dict
 import warnings  # to ignore (some) warnings
 from pathlib import Path
 
@@ -362,6 +362,52 @@ def make_dir(project_name: str) -> tuple:
 
     return pdir, ndir, ddir
 
+def weighted_operation(
+    df: pd.DataFrame, 
+    weight_col: str, 
+    value_cols: List[str], 
+    operation: str = 'mean', 
+    output_names: Dict[str, str] = None
+) -> pd.Series:
+    """
+    Performs a specified weighted operation on the provided DataFrame.
+
+    Parameters:
+        df (pandas.DataFrame): A DataFrame on which to perform the operation.
+        weight_col (str): The name of the column to use as the weight.
+        value_cols (List[str]): A list of column names for the value data.
+        operation (str): The operation to perform. Default is 'mean'. Other option: 'sum'.
+        output_names (Dict[str, str]): A mapping from original column names to their names in the output. Defaults to None.
+
+    Returns:
+        pandas.core.series.Series: A Series containing the results of the weighted operation and the total weight.
+    """
+    data = OrderedDict()
+
+    weights = df[weight_col]
+    total_weight = weights.sum()
+
+    for value_col in value_cols:
+        values = df[value_col]
+
+        if operation == 'mean':
+            result = (values * weights).sum() / total_weight
+        elif operation == 'sum':
+            result = (values * weights).sum()
+        else:
+            raise ValueError(f"Unknown operation: {operation}")
+
+        # If output names are provided, use them, otherwise keep original names
+        if output_names:
+            data[output_names.get(value_col, value_col)] = result
+        else:
+            data[value_col] = result
+
+    data[f'{weight_col}_total'] = total_weight
+
+    return pd.Series(data)
+
+
 # # ------------------------------------ Retired funcs ------------------------------------
 # def pwd() -> str:
 #     """Returns the current working directory.
@@ -407,6 +453,25 @@ def make_dir(project_name: str) -> tuple:
 #     grouped_merge= group_merge_weighted_avg(df, test, 'values', 'weights', 'wavg')
 #     print(grouped)
 #     print(grouped_merge)
+
+# # Assume we have a DataFrame
+# df = pd.DataFrame({
+#     'product': ['apple', 'banana', 'apple', 'banana', 'apple'],
+#     'price': [1.0, 0.5, 1.2, 0.6, 1.1],
+#     'quantity': [10, 5, 20, 8, 15],
+#     'weight': [0.5, 0.6, 0.7, 0.65, 0.55]
+# })
+
+# # Group by product and calculate the weighted mean and sum of price
+# grouped = df.groupby('product')
+
+# output = grouped.apply(weighted_operation, 
+#                        weight_col='quantity', 
+#                        value_cols=['price', 'weight'], 
+#                        operation='mean', 
+#                        output_names={'price': 'avg_price', 'weight': 'avg_weight'})
+
+# print(output)
 
 # # ------------------------------------ Useful snippets ------------------------------------
 # # Determine what columns to group by
