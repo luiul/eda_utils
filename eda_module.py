@@ -28,7 +28,7 @@ pd.set_option('display.max_rows', 100)
 pd.set_option("display.max_columns", None)
 
 # float show comma separators
-pd.options.display.float_format = '{:_.2f}'.format
+pd.options.display.float_format = '{:_.5f}'.format
 # alternative:
 # df.head().style.format("{:,.0f}")
 # df.head().style.format({"col1": "{:,.0f}", "col2": "{:,.0f}"})
