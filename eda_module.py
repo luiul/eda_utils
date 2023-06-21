@@ -407,6 +407,54 @@ def weighted_operation(
 
     return pd.Series(data)
 
+def fpath(path, new_file='', new_root='ddir', root_idx='data'):
+    """
+    This function transforms an existing path by replacing the root directory and removing everything 
+    before the new root. The new path is created using a specific root directory identifier and a new root name. 
+    
+    The root directory identifier is by default 'data', and the new root name is by default 'ddir'.
+    
+    If a new file is specified, it is added to the end of the path.
+
+    Parameters:
+    path (str): The original file path that needs to be transformed.
+    new_file (str): The new file to be added at the end of the path. Default is an empty string, which means no file is added.
+    new_root (str): The new root directory name, default is 'ddir'.
+    root_idx (str): The identifier of the root directory in the original path, default is 'data'.
+
+    Returns:
+    str: The transformed path.
+    
+    Raises:
+    ValueError: If the root_idx is not found in the path.
+    """
+    
+    # Ensure the input path is a Path object
+    path = Path(path)
+    
+    # Split the path into parts
+    parts = path.parts
+    
+    # Find the index of root_idx in the path parts
+    try:
+        root_idx = parts.index(root_idx)
+    except ValueError:
+        # Raise an error if the root_idx is not found in the path
+        raise ValueError(f"The input path does not contain '{root_idx}'")
+    
+    # Create a new path by replacing root_idx with new_root and removing everything before root_idx
+    new_parts = (new_root,) + parts[root_idx+1:]
+    
+    # If a new file is specified, add it to the end of the path
+    if new_file:
+        new_parts += (new_file,)
+    
+    # Join the parts back into a string, using '/' as the separator
+    # Add quotation marks around each part except the new root
+    new_path = '/'.join([new_parts[0]] + [f"'{part}'" for part in new_parts[1:]])
+    
+    # Return the new path
+    print(new_path)
 
 # # ------------------------------------ Retired funcs ------------------------------------
 # def pwd() -> str:
