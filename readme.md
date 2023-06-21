@@ -1,9 +1,6 @@
 <!-- omit from toc -->
 # Python EDA Utils
 
-<!-- omit from toc -->
-## Description
-
 Collection of EDA functions for exploring, understanding, and visualizing data (including cleaning, transforming, summarizing, and visualizing data). This repo is typically used as a submodule in other repos. A complete guide can be found [here](https://git-scm.com/book/en/v2/Git-Tools-Submodules). A summary is provided below.
 
 <!-- omit from toc -->
