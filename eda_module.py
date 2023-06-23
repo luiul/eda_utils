@@ -407,7 +407,7 @@ def weighted_operation(
 
     return pd.Series(data)
 
-def fpath(path, new_file='', new_root='ddir', root_idx='data'):
+def fpath(path, new_file='', new_root='ddir', root_idx_value='data'):
     """
     This function transforms an existing path by replacing the root directory and removing everything 
     before the new root. The new path is created using a specific root directory identifier and a new root name. 
@@ -420,7 +420,7 @@ def fpath(path, new_file='', new_root='ddir', root_idx='data'):
     path (str): The original file path that needs to be transformed.
     new_file (str): The new file to be added at the end of the path. Default is an empty string, which means no file is added.
     new_root (str): The new root directory name, default is 'ddir'.
-    root_idx (str): The identifier of the root directory in the original path, default is 'data'.
+    root_idx_value (str): The identifier (value) of the root directory in the original path, default is 'data'.
 
     Returns:
     str: The transformed path.
@@ -437,7 +437,7 @@ def fpath(path, new_file='', new_root='ddir', root_idx='data'):
     
     # Find the index of root_idx in the path parts
     try:
-        root_idx = parts.index(root_idx)
+        root_idx = parts.index(root_idx_value)
     except ValueError:
         # Raise an error if the root_idx is not found in the path
         raise ValueError(f"The input path does not contain '{root_idx}'")
