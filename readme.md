@@ -6,11 +6,11 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
 <!-- omit from toc -->
 ## Table of Contents
 
-- [1. How to add to an existing repo](#1-how-to-add-to-an-existing-repo)
+- [1. How to add a submodule to an existing repo](#1-how-to-add-a-submodule-to-an-existing-repo)
 - [2. How to clone a repo that already has submodules](#2-how-to-clone-a-repo-that-already-has-submodules)
-- [3. Update a submodule](#3-update-a-submodule)
-- [4. Remove a submodule](#4-remove-a-submodule)
-- [5. How to use the eda\_utils in new or existing code](#5-how-to-use-the-eda_utils-in-new-or-existing-code)
+- [3. Update submodule to latest commit on remote](#3-update-submodule-to-latest-commit-on-remote)
+- [4. Remove submodule from parent repo (and remote)](#4-remove-submodule-from-parent-repo-and-remote)
+- [5. How to use the module in your code](#5-how-to-use-the-module-in-your-code)
   - [5.1. Importing eda\_utils in Python Scripts](#51-importing-eda_utils-in-python-scripts)
   - [5.2. Importing eda\_utils in Python Scripts](#52-importing-eda_utils-in-python-scripts)
 - [6. General considerations](#6-general-considerations)
@@ -30,7 +30,7 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
   - [11.2. Handling .DS\_Store files](#112-handling-ds_store-files)
 - [12. References](#12-references)
 
-## 1. How to add to an existing repo
+## 1. How to add a submodule to an existing repo
 
 1. Add the submodule to an existing repo:
 
@@ -81,7 +81,7 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
     cd eda_utils
     git checkout main
 
-## 3. Update a submodule
+## 3. Update submodule to latest commit on remote
 
 To update the contents of a submodule, you should follow these steps:
 
@@ -127,7 +127,7 @@ To update the contents of a submodule, you should follow these steps:
     git push origin main
     ```
 
-## 4. Remove a submodule
+## 4. Remove submodule from parent repo (and remote)
 
 1. Delete the relevant section from the `.gitmodules` file.
 
@@ -167,7 +167,7 @@ To update the contents of a submodule, you should follow these steps:
     git push origin main
     ```
 
-## 5. How to use the eda_utils in new or existing code
+## 5. How to use the module in your code
 
 The submodule will appear as a subfolder structure in the parent repo. From this point all functions that exist in the `eda_utils/eda_module` folders can be imported and used in the main repo's code. For example:
 
