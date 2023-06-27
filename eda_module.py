@@ -40,19 +40,18 @@ pd.options.display.float_format = '{:_.5f}'.format
 warnings.filterwarnings("ignore")
 
 
-def table(df: pd.DataFrame) -> pd.DataFrame:
+def table(df: pd.DataFrame, max_list_len: int = 10, max_concat_list_len: int = 70) -> pd.DataFrame:
     """Print basic dataframe stats in a tabular form. General EDA function to get a first overview and sample of the data frame
 
     Args:
         df (pd.DataFrame): Dataframe of interest
+        max_list_len (int): Maximum length of a list to be displayed in the unique values column
+        max_concat_list_len (int): Maximum length of a concatenated list to be displayed in the unique values column
 
     Returns:
         pd.DataFrame: A sample of the dataframe
     """
     rows: List[List] = []  # initialize an empty list to store rows
-    row_no: int = 1  # initialize the row number
-    max_list_len: int = 10  # maximum length of a list to be displayed in the unique values column
-    max_concat_list_len: int = 75  # maximum length of a concatenated list to be displayed in the unique values column
 
     # Loop through each column in the dataframe and create a row for the table
     for row_no, col in enumerate(df):
@@ -90,7 +89,9 @@ def table(df: pd.DataFrame) -> pd.DataFrame:
                 str,
                 unique_values))  # concatenate the unique values into a string
             if len(unique_values_concat) > max_concat_list_len:
-                unique_values_concat = f"{unique_values_concat[:max_concat_list_len-3]}..."  # add three dots if the concatenated values exceed the threshold
+                unique_values_concat = f"{unique_values_concat[:max_concat_list_len-3]}.."  # add three dots if the concatenated values exceed the threshold
+            # concatenate nunique to unique_values_concat
+            unique_values_concat = f'{df[col].nunique()}/{unique_values_concat}'
             row.append(unique_values_concat
                        )  # add the list of unique values to the row
             row.extend([
@@ -103,7 +104,7 @@ def table(df: pd.DataFrame) -> pd.DataFrame:
     # Create and print table using the tabulate library
     table: str = tabulate(
         rows,
-        headers=["n", "col_name", "dtype", "unique_values", "NAs", "0s/Fs"],
+        headers=["n", "col_name", "dtype", "nunique/u_vals", "NAs", "0s/Fs"],
         tablefmt="pipe")
     print(f"Number of records: {len(df):_}\n")
     print(table)
@@ -111,7 +112,6 @@ def table(df: pd.DataFrame) -> pd.DataFrame:
         return df.sample(5)  # return a sample of the dataframe
     else:
         return df
-    # return df.sample(5)  # return a sample of the dataframe
 
 
 def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
