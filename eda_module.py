@@ -6,6 +6,7 @@ import re
 from typing import List, Tuple, Union, Optional, Dict
 import warnings  # to ignore (some) warnings
 from pathlib import Path
+import math
 
 # data manipulation libs
 import numpy as np
@@ -38,21 +39,53 @@ pd.options.display.float_format = '{:_.5f}'.format
 # to format integers in a dataframe use the following method
 #df.style.format(thousands=',')
 
-warnings.filterwarnings("ignore")
+# warnings.filterwarnings("ignore")
 
-def table(df: pd.DataFrame, columns: Union[str, List[str]] = None, descriptive: bool = True, max_list_len: int = 10, max_concat_list_len: int = 70) -> pd.DataFrame:
-    """Print basic dataframe stats in a tabular form. General EDA function to get a first overview and sample of the data frame
+def table(df: pd.DataFrame, columns: Union[str, List[str]] = None, n_cols:int = 3, descriptive: bool = True, transpose_des: bool = True, sns_corr: bool = False, max_list_len: int = 10, max_concat_list_len: int = 70) -> pd.DataFrame:
+    """
+    Print basic dataframe stats in a tabular form, visualize columns, and provide descriptive statistics. 
+    This function is designed for exploratory data analysis (EDA) to get a first overview and sample of the dataframe.
 
     Args:
-        df (pd.DataFrame): Dataframe of interest
-        columns (Union[str, List[str]], optional): List of columns to visualize. If None, no visualization is performed. If 'all', visualize all columns. Defaults to None.
+        df (pd.DataFrame): Dataframe of interest.
+        columns (Union[str, List[str]], optional): List of columns to visualize. If None, no visualization is performed. 
+            If 'all', visualize all columns. If a single string is passed, visualize that single column. Defaults to None.
+        n_cols (int, optional): Number of columns in the grid for visualizing the columns. Defaults to 3.
         descriptive (bool, optional): If True, print descriptive statistics. Defaults to True.
-        max_list_len (int, optional): Maximum length of a list to be displayed in the unique values column. Defaults to 10.
-        max_concat_list_len (int, optional): Maximum length of a concatenated list to be displayed in the unique values column. Defaults to 70.
+        transpose_des (bool, optional): If True, transpose the descriptive statistics table. Defaults to True.
+        sns_corr (bool, optional): If True, display a correlation matrix heatmap using Seaborn. 
+            If False, display the correlation matrix as a table. Defaults to False.
+        max_list_len (int, optional): Maximum length of a list to be displayed in the "unique values" column. 
+            If the number of unique values in a column exceeds this threshold, only the count of unique values is shown. 
+            Defaults to 10.
+        max_concat_list_len (int, optional): Maximum length of a concatenated list to be displayed in the "unique values" column. 
+            If the concatenated unique values string exceeds this threshold, it will be truncated and ellipses will be added. 
+            Defaults to 70.
 
     Returns:
-        pd.DataFrame: A sample of the dataframe
+        pd.DataFrame: A sample of the dataframe.
+
+    Displays a table containing basic statistics of the dataframe, including the number of records, column names, data types, 
+    the number of unique values or the count of unique values if it exceeds the threshold, the number of missing values, 
+    and the count of zeros or falses in each column. Additionally, provides a sample of the dataframe.
+
+    If `descriptive` is set to True, the function also displays descriptive statistics such as count, mean, 
+    standard deviation, minimum, quartiles, and maximum values for each numeric column in the dataframe. 
+    Descriptive statistics can be displayed either as a transposed table or a regular table.
+
+    If `sns_corr` is set to True, the function displays a correlation matrix heatmap using Seaborn. 
+    If False, it displays the correlation matrix as a table.
+
+    If `columns` is not None, the function visualizes the specified columns. 
+    If `columns` is set to 'all', it visualizes all columns in the dataframe. 
+    The function plots histograms for numeric columns and bar plots for categorical columns. 
+    The number of columns to be visualized is controlled by the `n_cols` parameter. 
+    If `n_cols` is 0, each column will be displayed in a separate plot.
+
+    Note: The function utilizes the `tabulate` library for creating the table, and requires the `display` and `Markdown` 
+    modules from the IPython library for displaying the table and sample data in a Jupyter Notebook.
     """
+
     rows: List[List] = []  # initialize an empty list to store rows
 
     # Loop through each column in the dataframe and create a row for the table
@@ -116,59 +149,121 @@ def table(df: pd.DataFrame, columns: Union[str, List[str]] = None, descriptive: 
     sample = df.sample(5) if len(df) > 5 else df
     display(Markdown("**Sample data:**"))
     display(sample)
-
-    # Display descriptive statistics if descriptive is True
+    
+    '''
+    =====================================================
+    Display descriptive statistics if descriptive is True
+    =====================================================
+    '''
     if not descriptive: return
 
     # Print descriptive statistics
     display(Markdown("**Descriptive statistics:**"))
-    display(df.describe(include='all'))
+    if transpose_des: display(df.describe(include='all').T)
+    else: display(df.describe(include='all'))
 
     # Print information about the DataFrame including the index dtype and column dtypes, non-null values and memory usage.
     # display(Markdown("**Dataframe info:**"))
     # display(df.info(verbose=True))
 
     # Print correlation matrix
-    display(Markdown("**Correlation matrix:**"))
-    display(df.corr())
+    if sns_corr:
+        display(Markdown("**Correlation matrix:**"))
+        corr = df.corr()
+        from matplotlib import MatplotlibDeprecationWarning
+        warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
+        plt.figure(figsize=(10,8))
+        plt.grid(False)  # Turn off grid lines
+        sns.heatmap(corr, annot=True, fmt=".2f", cmap='magma')
+        plt.show()
+        warnings.filterwarnings("default", category=MatplotlibDeprecationWarning)
+    else: 
+        display(Markdown("**Correlation matrix:**"))
+        display(df.corr())
 
-    # Visualize columns if columns is not None
-    # Define columns to plot
+    '''
+    ========================================
+    Visualize columns if columns is not None
+    ========================================
+    '''
+    if columns is None: return
+    # If columns is 'all', plot all columns
     if columns == 'all':
-        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        numeric_cols = df.select_dtypes(include=[np.int64, np.float64]).columns.tolist()
         categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-    # Single column passed as a string
-    elif isinstance(columns, str):  # single column passed as a string
-        if df[columns].dtype in [np.number]:
-            numeric_cols = [columns]
-            categorical_cols = []
-        else:
-            numeric_cols = []
-            categorical_cols = [columns]
-    # List of columns passed
-    elif columns:
-        numeric_cols = [col for col in columns if df[col].dtype in [np.number]]
+    else:
+        # Make sure that the columns exist in the dataframe
+        if isinstance(columns, str): columns = [columns]
+
+        nonexistent_cols = [col for col in columns if col not in df.columns]
+        if nonexistent_cols and columns != ['all']:
+            warnings.warn(f"The following columns do not exist in the dataframe: {nonexistent_cols}")
+
+        columns = [col for col in columns if col in df.columns]
+        if not columns:
+            warnings.warn('No columns to plot')
+            return
+        numeric_cols = [col for col in columns if df[col].dtype in [np.int64, np.float64]]
         categorical_cols = [col for col in columns if df[col].dtype in ['object', 'category']]
-    else: return
 
     # Histograms for each numeric column
+    if n_cols > 10: 
+        warnings.warn('Too many columns to plot')
+        return
+    
+    # Create plots instead of subplots if n_cols is 0
+    if n_cols == 0: 
+        # Histograms for each numeric column
+        if numeric_cols:
+            display(Markdown("**Histograms of numeric columns:**"))
+            for col in numeric_cols:
+                fig, ax = plt.subplots(figsize=(8, 6))
+                sns.histplot(data=df, x=col, ax=ax)
+                ax.set_title(f'Histogram of {col}')
+                plt.show()
+
+        # Bar plots for each categorical column
+        if categorical_cols:
+            display(Markdown("**Bar plots of categorical columns:**"))
+            for col in categorical_cols:
+                fig, ax = plt.subplots(figsize=(10, 6))
+                counts = df[col].value_counts().nlargest(20)
+                sns.barplot(x=counts.index, y=counts, ax=ax, palette='magma')
+                ax.set_title(f'Bar plot of {col}')
+                plt.xticks(rotation=45, ha='right')
+                plt.show()
+
+    # Create subplots for numeric columns
     if numeric_cols:
-        for col in numeric_cols:
-            fig, ax = plt.subplots(figsize=(8, 6))
-            sns.histplot(data=df, x=col, ax=ax)
-            ax.set_title(f'Histogram of {col}')
-            plt.show()
+        display(Markdown("**Histograms of numeric columns:**"))
+        n_rows = math.ceil(len(numeric_cols) / n_cols)  # Calculate number of rows needed
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(20, 5*n_rows))
+        axs = axs.ravel()  # Flatten the axes array
+        for i in range(n_rows * n_cols):
+            if i < len(numeric_cols):
+                sns.histplot(data=df, x=numeric_cols[i], ax=axs[i])
+                axs[i].set_title(f'Histogram of {numeric_cols[i]}', fontsize=12)
+            else:
+                fig.delaxes(axs[i])  # Delete the unused axes
+        plt.tight_layout()  # Adjusts subplot params to give specified padding
+        plt.show()
 
-    # Bar plots for each categorical column
+    # Create subplots for categorical columns
     if categorical_cols:
-        for col in categorical_cols:
-            fig, ax = plt.subplots(figsize=(10, 6))
-            counts = df[col].value_counts().nlargest(20)
-            sns.barplot(x=counts.index, y=counts, ax=ax)
-            ax.set_title(f'Bar plot of {col}')
-            plt.xticks(rotation=45, ha='right')
-            plt.show()
-
+        display(Markdown("**Bar plots of categorical columns:**"))
+        n_rows = math.ceil(len(categorical_cols) / n_cols)  # Calculate number of rows needed
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(20, 5*n_rows))
+        axs = axs.ravel()  # Flatten the axes array
+        for i in range(n_rows * n_cols):
+            if i < len(categorical_cols):
+                counts = df[categorical_cols[i]].value_counts().nlargest(20)
+                sns.barplot(x=counts.index, y=counts, ax=axs[i], palette='magma')
+                axs[i].set_title(f'Bar plot of {categorical_cols[i]}', fontsize=12)
+                plt.xticks(rotation=45, ha='right')
+            else:
+                fig.delaxes(axs[i])  # Delete the unused axes
+        plt.tight_layout()  # Adjusts subplot params to give specified padding
+        plt.show()
 
 def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
     """Convert a list column to string in a Pandas DataFrame
