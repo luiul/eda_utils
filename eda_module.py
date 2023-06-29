@@ -207,6 +207,16 @@ def table(df: pd.DataFrame, columns: Union[str, List[str]] = None, n_cols:int = 
         numeric_cols = [col for col in columns if df[col].dtype in [np.int64, np.float64]]
         categorical_cols = [col for col in columns if df[col].dtype in ['object', 'category']]
 
+    # Filtering columns where nunique is not 1
+    numeric_cols = [col for col in numeric_cols if df[col].nunique() > 1]
+    categorical_cols = [col for col in categorical_cols if df[col].nunique() > 1]
+
+    # Checking if the lists are empty after filtering
+    if not numeric_cols:
+        warnings.warn('All numeric columns have only one unique value and have been removed')
+    if not categorical_cols:
+        warnings.warn('All categorical columns have only one unique value and have been removed')
+    
     # Histograms for each numeric column
     if n_cols > 10: 
         warnings.warn('Too many columns to plot')
