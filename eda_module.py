@@ -13,6 +13,7 @@ import pandas as pd
 
 # data viz libs
 # https://pandas.pydata.org/pandas-docs/version/1.0/user_guide/style.html
+from IPython.display import display, Markdown
 import matplotlib.pyplot as plt
 import seaborn as sns
 
@@ -39,14 +40,15 @@ pd.options.display.float_format = '{:_.5f}'.format
 
 warnings.filterwarnings("ignore")
 
-
-def table(df: pd.DataFrame, max_list_len: int = 10, max_concat_list_len: int = 70) -> pd.DataFrame:
+def table(df: pd.DataFrame, columns: Union[str, List[str]] = None, descriptive: bool = True, max_list_len: int = 10, max_concat_list_len: int = 70) -> pd.DataFrame:
     """Print basic dataframe stats in a tabular form. General EDA function to get a first overview and sample of the data frame
 
     Args:
         df (pd.DataFrame): Dataframe of interest
-        max_list_len (int): Maximum length of a list to be displayed in the unique values column
-        max_concat_list_len (int): Maximum length of a concatenated list to be displayed in the unique values column
+        columns (Union[str, List[str]], optional): List of columns to visualize. If None, no visualization is performed. If 'all', visualize all columns. Defaults to None.
+        descriptive (bool, optional): If True, print descriptive statistics. Defaults to True.
+        max_list_len (int, optional): Maximum length of a list to be displayed in the unique values column. Defaults to 10.
+        max_concat_list_len (int, optional): Maximum length of a concatenated list to be displayed in the unique values column. Defaults to 70.
 
     Returns:
         pd.DataFrame: A sample of the dataframe
@@ -106,12 +108,66 @@ def table(df: pd.DataFrame, max_list_len: int = 10, max_concat_list_len: int = 7
         rows,
         headers=["n", "col_name", "dtype", "nunique/u_vals", "NAs", "0s/Fs"],
         tablefmt="pipe")
-    print(f"Number of records: {len(df):_}\n")
+    
+    # Print the table and a sample of the dataframe
+    display(Markdown(f"**Dataframe info:** Number of records: {len(df):_}"))
+    # display(Markdown(table))
     print(table)
-    if len(df) > 5:
-        return df.sample(5)  # return a sample of the dataframe
-    else:
-        return df
+    sample = df.sample(5) if len(df) > 5 else df
+    display(Markdown("**Sample data:**"))
+    display(sample)
+
+    # Display descriptive statistics if descriptive is True
+    if not descriptive: return
+
+    # Print descriptive statistics
+    display(Markdown("**Descriptive statistics:**"))
+    display(df.describe(include='all'))
+
+    # Print information about the DataFrame including the index dtype and column dtypes, non-null values and memory usage.
+    # display(Markdown("**Dataframe info:**"))
+    # display(df.info(verbose=True))
+
+    # Print correlation matrix
+    display(Markdown("**Correlation matrix:**"))
+    display(df.corr())
+
+    # Visualize columns if columns is not None
+    # Define columns to plot
+    if columns == 'all':
+        numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+        categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+    # Single column passed as a string
+    elif isinstance(columns, str):  # single column passed as a string
+        if df[columns].dtype in [np.number]:
+            numeric_cols = [columns]
+            categorical_cols = []
+        else:
+            numeric_cols = []
+            categorical_cols = [columns]
+    # List of columns passed
+    elif columns:
+        numeric_cols = [col for col in columns if df[col].dtype in [np.number]]
+        categorical_cols = [col for col in columns if df[col].dtype in ['object', 'category']]
+    else: return
+
+    # Histograms for each numeric column
+    if numeric_cols:
+        for col in numeric_cols:
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.histplot(data=df, x=col, ax=ax)
+            ax.set_title(f'Histogram of {col}')
+            plt.show()
+
+    # Bar plots for each categorical column
+    if categorical_cols:
+        for col in categorical_cols:
+            fig, ax = plt.subplots(figsize=(10, 6))
+            counts = df[col].value_counts().nlargest(20)
+            sns.barplot(x=counts.index, y=counts, ax=ax)
+            ax.set_title(f'Bar plot of {col}')
+            plt.xticks(rotation=45, ha='right')
+            plt.show()
 
 
 def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
