@@ -487,7 +487,7 @@ def print_list(obj):
     for item in obj:
         print(item)
 
-def make_dir(project_name: str) -> tuple:
+def mkpro(project_name: str) -> tuple:
     """
     Given a project name, create the necessary directories.
 
