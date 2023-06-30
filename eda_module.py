@@ -160,8 +160,12 @@ def table(df: pd.DataFrame, columns: Union[str, List[str]] = None, n_cols:int = 
 
     # Print descriptive statistics
     display(Markdown("**Descriptive statistics:**"))
-    if transpose_des: display(df.describe(include='all').T)
-    else: display(df.describe(include='all'))
+    
+    # Remove count from the descriptive statistics table
+    df_des = df.describe(include='all').drop('count', axis=0)
+
+    if transpose_des: display(df_des.T)
+    else: display(df_des)
 
     # Print information about the DataFrame including the index dtype and column dtypes, non-null values and memory usage.
     # display(Markdown("**Dataframe info:**"))
