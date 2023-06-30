@@ -518,10 +518,6 @@ def make_dir(project_name: str) -> tuple:
         directory.mkdir(exist_ok=True)
         print(f"Directory {directory} checked or created.")
 
-    print()
-    print("Remember to assign the returned paths when calling this function:")
-    print("project_dir, notebooks_dir, data_dir = make_dir('your_project_name')")
-
     return pdir, ndir, ddir
 
 def weighted_operation(
