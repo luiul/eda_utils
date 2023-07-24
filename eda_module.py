@@ -42,7 +42,17 @@ pd.options.display.float_format = '{:_.5f}'.format
 
 # warnings.filterwarnings("ignore")
 
-def table(df: pd.DataFrame, columns: Union[str, List[str]] = None, n_cols:int = 3, descriptive: bool = True, transpose_des: bool = True, sns_corr: bool = False, max_list_len: int = 10, max_concat_list_len: int = 70) -> pd.DataFrame:
+def table(
+        df: pd.DataFrame, 
+        columns: Union[str, List[str]] = None, 
+        n_cols:int = 3, 
+        descriptive: bool = True, 
+        transpose_des: bool = True, 
+        corr: bool = False, 
+        sns_corr: bool = False, 
+        max_list_len: int = 10, 
+        max_concat_list_len: int = 70
+        ) -> pd.DataFrame:
     """
     Print basic dataframe stats in a tabular form, visualize columns, and provide descriptive statistics. 
     This function is designed for exploratory data analysis (EDA) to get a first overview and sample of the dataframe.
@@ -152,9 +162,9 @@ def table(df: pd.DataFrame, columns: Union[str, List[str]] = None, n_cols:int = 
     display(sample)
     
     '''
-    =====================================================
-    Display descriptive statistics if descriptive is True
-    =====================================================
+    ===============================================================
+    Display descriptive statistics if descriptive is True (default)
+    ===============================================================
     '''
     if not descriptive: return
 
@@ -170,6 +180,11 @@ def table(df: pd.DataFrame, columns: Union[str, List[str]] = None, n_cols:int = 
     # Print information about the DataFrame including the index dtype and column dtypes, non-null values and memory usage.
     # display(Markdown("**Dataframe info:**"))
     # display(df.info(verbose=True))
+    '''
+    ==========================================
+    Display correlation matrix if corr is True
+    ==========================================
+    '''
 
     # Print correlation matrix
     if sns_corr:
@@ -336,75 +351,76 @@ def flatten_multiindex(df: pd.DataFrame) -> List[str]:
     # Return the list of column names
     return cols
 
-
-def weighted_avg(group: pd.DataFrame, weight_col: str, val_col: str) -> float:
-    """Calculate weighted average of values in a group of rows.
+def wavg(df: pd.DataFrame, values: str, weights: str) -> float:
+    """
+    This function computes the weighted average of a given dataframe column.
 
     Args:
-        group (pd.DataFrame): Group of rows to calculate weighted average for.
-        weight_col (str): Name of the column to use as weights in the weighted average calculation.
-        val_col (str): Name of the column to calculate the weighted average of.
+    df (pd.DataFrame): input DataFrame.
+    values (str): column in df which we want to find average of.
+    weights (str): column in df which represents weights.
 
     Returns:
-        float: Weighted average of values in the group.
+    float: Weighted average of 'values' column with respect to 'weights' column.
     """
-    w: pd.Series = group[weight_col]
-    v: pd.Series = group[val_col]
-    total_weight: float = w.sum()
-    if total_weight == 0:
-        raise ZeroDivisionError("The sum of weights is zero.")
-    return (w * v).sum() / total_weight
 
+    if not set([values, weights]).issubset(df.columns):
+        raise ValueError(f"Column names provided are not in the dataframe. The dataframe has these columns: {df.columns.tolist()}")
+    
+    valid_df = df.dropna(subset=[values, weights])
+    
+    if valid_df[weights].sum() == 0:
+        raise ValueError("Sum of weights is zero, cannot perform division by zero.")
 
-def group_weighted_avg(df: pd.DataFrame, group_col: Union[str, List[str]],
-                       val_col: str, weight_col: str,
-                       col_name: str) -> pd.DataFrame:
-    """Group a Pandas DataFrame by a column or a list of columns and calculate the weighted average of another column.
+    return np.average(valid_df[values], weights=valid_df[weights])
+
+def wavg_grouped(df: pd.DataFrame, values: str, weights: str, group: Union[str, list], 
+                 merge: bool = False, nan_for_zero_weights: bool = False) -> pd.DataFrame:
+    """
+    This function computes the weighted average of a given dataframe column within specified groups.
 
     Args:
-        df (pd.DataFrame): DataFrame to group and calculate weighted average for.
-        group_col (Union[str, List[str]]): Name or list of the column(s) to group the DataFrame by.
-        val_col (str): Name of the column to calculate the weighted average of.
-        weight_col (str): Name of the column to use as weights in the weighted average calculation.
-        col_name (str): Name of the resulting column.
+    df (pd.DataFrame): input DataFrame.
+    values (str): column in df which we want to find average of.
+    weights (str): column in df which represents weights.
+    group (Union[str, list]): column name(s) to group by. Can be a string (single column) or list of strings (multiple columns).
+    merge (bool): if True, merges the input DataFrame with the resulting DataFrame.
+    nan_for_zero_weights (bool): if True, returns NaN for groups where the sum of weights is zero. 
 
     Returns:
-        pd.DataFrame: DataFrame containing the weighted average of values in `val_col` for each group in the DataFrame,
-            indexed by the unique values in the `group_col` column.
+    pd.DataFrame: DataFrame with the weighted average of 'values' column with respect to 'weights' column for each group.
     """
-    grouped: pd.DataFrame = df.groupby(group_col, as_index=False).apply(
-        weighted_avg, weight_col, val_col)
-    grouped.columns = grouped.columns.fillna(col_name)
-    return grouped
+    # if group is a string, convert it to list
+    if isinstance(group, str):
+        group = [group]
 
+    if not set([values, weights] + group).issubset(set(df.columns)):
+        raise ValueError(f"Column names provided are not in the dataframe. The dataframe has these columns: {df.columns.tolist()}")
+    
+    valid_df = df.dropna(subset=[values, weights] + group)
 
-def group_merge_weighted_avg(
-        df: pd.DataFrame,
-        group_col: Union[str, List[str]],
-        val_col: str,
-        weight_col: str,
-        col_name: str,
-        merge_col: Optional[Union[str, List[str]]] = None) -> pd.DataFrame:
-    """Group a Pandas DataFrame by a column or a list of columns, calculate the weighted average of another column, and merge the results back to the original DataFrame.
+    # Check if valid_df is empty
+    if valid_df.empty:
+        raise ValueError("All values in the input DataFrame are missing, cannot perform weighted average.")
+    
+    # Check if any group has sum of weights equal to zero
+    zero_weight_groups = valid_df.groupby(group).filter(lambda x: x[weights].sum() == 0)
+    
+    if not zero_weight_groups.empty:
+        if nan_for_zero_weights:
+            weighted_averages = valid_df.groupby(group).apply(lambda x: np.average(x[values], weights=x[weights]) if x[weights].sum() != 0 else np.nan)
+        else:
+            zero_weight_group_values = zero_weight_groups[group].drop_duplicates().values.tolist()
+            raise ValueError(f"The following group(s) have sum of weights equal to zero: {zero_weight_group_values}. Cannot perform division by zero.")
+    else:
+        weighted_averages = valid_df.groupby(group).apply(lambda x: np.average(x[values], weights=x[weights]))
 
-    Args:
-        df (pd.DataFrame): DataFrame to group and calculate weighted average for.
-        group_col (Union[str, List[str]]): Name or list of the column(s) to group the DataFrame by.
-        val_col (str): Name of the column to calculate the weighted average of.
-        weight_col (str): Name of the column to use as weights in the weighted average calculation.
-        col_name (str): Name of the resulting column.
-        merge_col (Union[str, List[str]], optional): Name or list of the column(s) to merge the resulting DataFrame on. If None, defaults to group_col. Defaults to None.
-
-    Returns:
-        pd.DataFrame: DataFrame containing the original columns and the new column with the weighted average for each group.
-    """
-    grouped: pd.Series = group_weighted_avg(df, group_col, val_col, weight_col,
-                                            col_name)
-    merge_col = merge_col or group_col
-    merged: pd.DataFrame = pd.merge(df, grouped, how="left", on=merge_col)
-    # merged.drop(columns=group_col, inplace=True)
-    return merged
-
+    weighted_averages = weighted_averages.reset_index().rename(columns={0: 'wavg'})
+    
+    if merge:
+        return df.merge(weighted_averages, on=group, how='left')
+    else:
+        return weighted_averages
 
 def create_store_table(file_path: str) -> pd.DataFrame:
     # If file exists, load it; otherwise, read clipboard and save to file
@@ -524,51 +540,6 @@ def mkpro(project_name: str) -> tuple:
 
     return pdir, ndir, ddir
 
-def weighted_operation(
-    df: pd.DataFrame, 
-    weight_col: str, 
-    value_cols: List[str], 
-    operation: str = 'mean', 
-    output_names: Dict[str, str] = None
-) -> pd.Series:
-    """
-    Performs a specified weighted operation on the provided DataFrame.
-
-    Parameters:
-        df (pandas.DataFrame): A DataFrame on which to perform the operation.
-        weight_col (str): The name of the column to use as the weight.
-        value_cols (List[str]): A list of column names for the value data.
-        operation (str): The operation to perform. Default is 'mean'. Other option: 'sum'.
-        output_names (Dict[str, str]): A mapping from original column names to their names in the output. Defaults to None.
-
-    Returns:
-        pandas.core.series.Series: A Series containing the results of the weighted operation and the total weight.
-    """
-    data = OrderedDict()
-
-    weights = df[weight_col]
-    total_weight = weights.sum()
-
-    for value_col in value_cols:
-        values = df[value_col]
-
-        if operation == 'mean':
-            result = (values * weights).sum() / total_weight
-        elif operation == 'sum':
-            result = (values * weights).sum()
-        else:
-            raise ValueError(f"Unknown operation: {operation}")
-
-        # If output names are provided, use them, otherwise keep original names
-        if output_names:
-            data[output_names.get(value_col, value_col)] = result
-        else:
-            data[value_col] = result
-
-    data[f'{weight_col}_total'] = total_weight
-
-    return pd.Series(data)
-
 def fpath(path, new_file='', new_root='ddir', root_idx_value='data'):
     """
     This function transforms an existing path by replacing the root directory and removing everything 
@@ -618,7 +589,12 @@ def fpath(path, new_file='', new_root='ddir', root_idx_value='data'):
     # Return the new path
     print(new_path)
 
-# # ------------------------------------ Retired funcs ------------------------------------
+'''
+===============================================================
+Retired functions
+===============================================================
+'''
+
 # def pwd() -> str:
 #     """Returns the current working directory.
 
@@ -643,6 +619,117 @@ def fpath(path, new_file='', new_root='ddir', root_idx_value='data'):
 #     current_directory = os.getcwd()
 #     data_file_path = os.path.join(current_directory, 'data', my_file)
 #     return data_file_path
+
+# def weighted_avg(group: pd.DataFrame, weight_col: str, val_col: str) -> float:
+#     """Calculate weighted average of values in a group of rows.
+
+#     Args:
+#         group (pd.DataFrame): Group of rows to calculate weighted average for.
+#         weight_col (str): Name of the column to use as weights in the weighted average calculation.
+#         val_col (str): Name of the column to calculate the weighted average of.
+
+#     Returns:
+#         float: Weighted average of values in the group.
+#     """
+#     w: pd.Series = group[weight_col]
+#     v: pd.Series = group[val_col]
+#     total_weight: float = w.sum()
+#     if total_weight == 0:
+#         raise ZeroDivisionError("The sum of weights is zero.")
+#     return (w * v).sum() / total_weight
+
+# def group_weighted_avg(df: pd.DataFrame, group_col: Union[str, List[str]],
+#                        val_col: str, weight_col: str,
+#                        col_name: str) -> pd.DataFrame:
+#     """Group a Pandas DataFrame by a column or a list of columns and calculate the weighted average of another column.
+
+#     Args:
+#         df (pd.DataFrame): DataFrame to group and calculate weighted average for.
+#         group_col (Union[str, List[str]]): Name or list of the column(s) to group the DataFrame by.
+#         val_col (str): Name of the column to calculate the weighted average of.
+#         weight_col (str): Name of the column to use as weights in the weighted average calculation.
+#         col_name (str): Name of the resulting column.
+
+#     Returns:
+#         pd.DataFrame: DataFrame containing the weighted average of values in `val_col` for each group in the DataFrame,
+#             indexed by the unique values in the `group_col` column.
+#     """
+#     grouped: pd.DataFrame = df.groupby(group_col, as_index=False).apply(
+#         weighted_avg, weight_col, val_col)
+#     grouped.columns = grouped.columns.fillna(col_name)
+#     return grouped
+
+# def group_merge_weighted_avg(
+#         df: pd.DataFrame,
+#         group_col: Union[str, List[str]],
+#         val_col: str,
+#         weight_col: str,
+#         col_name: str,
+#         merge_col: Optional[Union[str, List[str]]] = None) -> pd.DataFrame:
+#     """Group a Pandas DataFrame by a column or a list of columns, calculate the weighted average of another column, and merge the results back to the original DataFrame.
+
+#     Args:
+#         df (pd.DataFrame): DataFrame to group and calculate weighted average for.
+#         group_col (Union[str, List[str]]): Name or list of the column(s) to group the DataFrame by.
+#         val_col (str): Name of the column to calculate the weighted average of.
+#         weight_col (str): Name of the column to use as weights in the weighted average calculation.
+#         col_name (str): Name of the resulting column.
+#         merge_col (Union[str, List[str]], optional): Name or list of the column(s) to merge the resulting DataFrame on. If None, defaults to group_col. Defaults to None.
+
+#     Returns:
+#         pd.DataFrame: DataFrame containing the original columns and the new column with the weighted average for each group.
+#     """
+#     grouped: pd.Series = group_weighted_avg(df, group_col, val_col, weight_col,
+#                                             col_name)
+#     merge_col = merge_col or group_col
+#     merged: pd.DataFrame = pd.merge(df, grouped, how="left", on=merge_col)
+#     # merged.drop(columns=group_col, inplace=True)
+#     return merged
+
+# def weighted_operation(
+#     df: pd.DataFrame, 
+#     weight_col: str, 
+#     value_cols: List[str], 
+#     operation: str = 'mean', 
+#     output_names: Dict[str, str] = None
+# ) -> pd.Series:
+#     """
+#     Performs a specified weighted operation on the provided DataFrame.
+
+#     Parameters:
+#         df (pandas.DataFrame): A DataFrame on which to perform the operation.
+#         weight_col (str): The name of the column to use as the weight.
+#         value_cols (List[str]): A list of column names for the value data.
+#         operation (str): The operation to perform. Default is 'mean'. Other option: 'sum'.
+#         output_names (Dict[str, str]): A mapping from original column names to their names in the output. Defaults to None.
+
+#     Returns:
+#         pandas.core.series.Series: A Series containing the results of the weighted operation and the total weight.
+#     """
+#     data = OrderedDict()
+
+#     weights = df[weight_col]
+#     total_weight = weights.sum()
+
+#     for value_col in value_cols:
+#         values = df[value_col]
+
+#         if operation == 'mean':
+#             result = (values * weights).sum() / total_weight
+#         elif operation == 'sum':
+#             result = (values * weights).sum()
+#         else:
+#             raise ValueError(f"Unknown operation: {operation}")
+
+#         # If output names are provided, use them, otherwise keep original names
+#         if output_names:
+#             data[output_names.get(value_col, value_col)] = result
+#         else:
+#             data[value_col] = result
+
+#     data[f'{weight_col}_total'] = total_weight
+
+#     return pd.Series(data)
 
 # # ------------------------------------ Examples ------------------------------------
 # df: pd.DataFrame = pd.DataFrame({
