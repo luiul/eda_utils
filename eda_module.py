@@ -1,3 +1,5 @@
+# TODO: write outlier removal function (based on IQR, z-score, etc.)
+
 # python libs
 import os
 import glob
@@ -32,6 +34,7 @@ pd.set_option("display.max_columns", None)
 
 # float show comma separators
 pd.options.display.float_format = '{:_.5f}'.format
+
 # alternative:
 # df.head().style.format("{:,.0f}")
 # df.head().style.format({"col1": "{:,.0f}", "col2": "{:,.0f}"})
@@ -46,56 +49,49 @@ def table(
         df: pd.DataFrame, 
         columns: Union[str, List[str]] = None, 
         n_cols:int = 3, 
-        descriptive: bool = True, 
+        descriptive: bool = False, 
         transpose_des: bool = True, 
         corr: bool = False, 
         sns_corr: bool = False, 
         max_list_len: int = 10, 
         max_concat_list_len: int = 70
-        ) -> pd.DataFrame:
+        ) -> None:
     """
-    Print basic dataframe stats in a tabular form, visualize columns, and provide descriptive statistics. 
+    Prints basic dataframe stats in a tabular form, visualizes columns, and provides descriptive statistics.
     This function is designed for exploratory data analysis (EDA) to get a first overview and sample of the dataframe.
 
     Args:
         df (pd.DataFrame): Dataframe of interest.
-        columns (Union[str, List[str]], optional): List of columns to visualize. If None, no visualization is performed. 
+        columns (Union[str, List[str]], optional): List of columns to visualize. If None, no visualization is performed.
             If 'all', visualize all columns. If a single string is passed, visualize that single column. Defaults to None.
-        n_cols (int, optional): Number of columns in the grid for visualizing the columns. Defaults to 3.
-        descriptive (bool, optional): If True, print descriptive statistics. Defaults to True.
+        n_cols (int, optional): Number of columns in the grid for visualizing the columns. If set to 0, each column will be displayed in a separate plot. Defaults to 3.
+        descriptive (bool, optional): If True, print descriptive statistics. Defaults to False.
         transpose_des (bool, optional): If True, transpose the descriptive statistics table. Defaults to True.
-        sns_corr (bool, optional): If True, display a correlation matrix heatmap using Seaborn. 
-            If False, display the correlation matrix as a table. Defaults to False.
-        max_list_len (int, optional): Maximum length of a list to be displayed in the "unique values" column. 
-            If the number of unique values in a column exceeds this threshold, only the count of unique values is shown. 
-            Defaults to 10.
-        max_concat_list_len (int, optional): Maximum length of a concatenated list to be displayed in the "unique values" column. 
-            If the concatenated unique values string exceeds this threshold, it will be truncated and ellipses will be added. 
-            Defaults to 70.
+        corr (bool, optional): If True, print the correlation matrix. Defaults to False.
+        sns_corr (bool, optional): If True, display a correlation matrix heatmap using Seaborn. If False, display the correlation matrix as a table. Defaults to False.
+        max_list_len (int, optional): Maximum length of a list to be displayed in the "unique values" column. If the number of unique values in a column exceeds this threshold, only the count of unique values is shown. Defaults to 10.
+        max_concat_list_len (int, optional): Maximum length of a concatenated list to be displayed in the "unique values" column. If the concatenated unique values string exceeds this threshold, it will be truncated and ellipses will be added. Defaults to 70.
 
     Returns:
-        pd.DataFrame: A sample of the dataframe.
+        None
 
-    Displays a table containing basic statistics of the dataframe, including the number of records, column names, data types, 
-    the number of unique values or the count of unique values if it exceeds the threshold, the number of missing values, 
-    and the count of zeros or falses in each column. Additionally, provides a sample of the dataframe.
+    Displays:
+        - A table containing basic statistics of the dataframe, including the number of records, column names, data types,
+          the number of unique values or the count of unique values if it exceeds the threshold, the number of missing values,
+          and the count of zeros or falses in each column.
+        - A sample of the dataframe.
+        - Descriptive statistics such as count, mean, standard deviation, minimum, quartiles, and maximum values for each numeric column in the dataframe (if `descriptive` is True).
+        - A correlation matrix or a correlation matrix heatmap using Seaborn (if `corr` or `sns_corr` is True).
+        - Histograms for numeric columns and bar plots for categorical columns (if `columns` is not None).
 
-    If `descriptive` is set to True, the function also displays descriptive statistics such as count, mean, 
-    standard deviation, minimum, quartiles, and maximum values for each numeric column in the dataframe. 
-    Descriptive statistics can be displayed either as a transposed table or a regular table.
-
-    If `sns_corr` is set to True, the function displays a correlation matrix heatmap using Seaborn. 
-    If False, it displays the correlation matrix as a table.
-
-    If `columns` is not None, the function visualizes the specified columns. 
-    If `columns` is set to 'all', it visualizes all columns in the dataframe. 
-    The function plots histograms for numeric columns and bar plots for categorical columns. 
-    The number of columns to be visualized is controlled by the `n_cols` parameter. 
-    If `n_cols` is 0, each column will be displayed in a separate plot.
-
-    Note: The function utilizes the `tabulate` library for creating the table, and requires the `display` and `Markdown` 
-    modules from the IPython library for displaying the table and sample data in a Jupyter Notebook.
+    Note:
+        - The function utilizes the `tabulate` library for creating the table, and requires the `display` and `Markdown`
+          modules from the IPython library for displaying the table and sample data in a Jupyter Notebook.
+        - If `n_cols` is greater than 10, a warning will be issued and no plots will be created.
+        - Warnings may also be issued if specified columns do not exist in the dataframe, or if all numeric or categorical
+          columns have only one unique value.
     """
+
 
     rows: List[List] = []  # initialize an empty list to store rows
 
@@ -166,16 +162,15 @@ def table(
     Display descriptive statistics if descriptive is True (default)
     ===============================================================
     '''
-    if not descriptive: return
+    if descriptive:
+        # Print descriptive statistics
+        display(Markdown("**Descriptive statistics:**"))
+        
+        # Remove count from the descriptive statistics table
+        df_des = df.describe(include='all').drop('count', axis=0)
 
-    # Print descriptive statistics
-    display(Markdown("**Descriptive statistics:**"))
-    
-    # Remove count from the descriptive statistics table
-    df_des = df.describe(include='all').drop('count', axis=0)
-
-    if transpose_des: display(df_des.T)
-    else: display(df_des)
+        if transpose_des: display(df_des.T)
+        else: display(df_des)
 
     # Print information about the DataFrame including the index dtype and column dtypes, non-null values and memory usage.
     # display(Markdown("**Dataframe info:**"))
@@ -185,8 +180,13 @@ def table(
     Display correlation matrix if corr is True
     ==========================================
     '''
-
     # Print correlation matrix
+    if corr and not sns_corr:
+        display(Markdown("**Correlation matrix:**"))
+        display(df.corr())
+        sns_corr = False
+
+    # Print correlation matrix using seaborn
     if sns_corr:
         display(Markdown("**Correlation matrix:**"))
         corr = df.corr()
@@ -197,9 +197,6 @@ def table(
         sns.heatmap(corr, annot=True, fmt=".2f", cmap='magma')
         plt.show()
         warnings.filterwarnings("default", category=MatplotlibDeprecationWarning)
-    else: 
-        display(Markdown("**Correlation matrix:**"))
-        display(df.corr())
 
     '''
     ========================================

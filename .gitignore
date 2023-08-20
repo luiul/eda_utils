@@ -218,3 +218,5 @@ poetry.toml
 
 # Additional rules
 __init__.py
+
+test.ipynb
