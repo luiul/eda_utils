@@ -1,4 +1,5 @@
-# TODO: write outlier removal function (based on IQR, z-score, etc.)
+# TODO: Write outlier removal function (based on IQR, z-score, etc.)
+# TODO: Implement new mkpro function (allow user to create the directories if they don't exist).
 
 # python libs
 import os
@@ -33,7 +34,7 @@ pd.set_option('display.max_rows', 100)
 pd.set_option("display.max_columns", None)
 
 # float show comma separators
-pd.options.display.float_format = '{:_.5f}'.format
+pd.options.display.float_format = '{:_.2f}'.format
 
 # alternative:
 # df.head().style.format("{:,.0f}")
@@ -54,7 +55,8 @@ def table(
         corr: bool = False, 
         sns_corr: bool = False, 
         max_list_len: int = 10, 
-        max_concat_list_len: int = 70
+        max_concat_list_len: int = 70,
+        seed: int = 42
         ) -> None:
     """
     Prints basic dataframe stats in a tabular form, visualizes columns, and provides descriptive statistics.
@@ -71,6 +73,7 @@ def table(
         sns_corr (bool, optional): If True, display a correlation matrix heatmap using Seaborn. If False, display the correlation matrix as a table. Defaults to False.
         max_list_len (int, optional): Maximum length of a list to be displayed in the "unique values" column. If the number of unique values in a column exceeds this threshold, only the count of unique values is shown. Defaults to 10.
         max_concat_list_len (int, optional): Maximum length of a concatenated list to be displayed in the "unique values" column. If the concatenated unique values string exceeds this threshold, it will be truncated and ellipses will be added. Defaults to 70.
+        seed (int, optional): Seed value for reproducible sampling. Defaults to 42.
 
     Returns:
         None
@@ -79,7 +82,7 @@ def table(
         - A table containing basic statistics of the dataframe, including the number of records, column names, data types,
           the number of unique values or the count of unique values if it exceeds the threshold, the number of missing values,
           and the count of zeros or falses in each column.
-        - A sample of the dataframe.
+        - A sample of the dataframe, with reproducible random sampling based on the seed value.
         - Descriptive statistics such as count, mean, standard deviation, minimum, quartiles, and maximum values for each numeric column in the dataframe (if `descriptive` is True).
         - A correlation matrix or a correlation matrix heatmap using Seaborn (if `corr` or `sns_corr` is True).
         - Histograms for numeric columns and bar plots for categorical columns (if `columns` is not None).
@@ -148,14 +151,15 @@ def table(
         rows,
         headers=["n", "col_name", "dtype", "nunique/u_vals", "NAs", "0s/Fs"],
         tablefmt="pipe")
-    
-    # Print the table and a sample of the dataframe
+
+     # Print the table and a sample of the dataframe
     display(Markdown(f"**Dataframe info:** Number of records: {len(df):_}"))
     # display(Markdown(table))
     print(table)
-    sample = df.sample(5) if len(df) > 5 else df
+    sample = df.sample(10, random_state=seed) if len(df) > 10 else df
     display(Markdown("**Sample data:**"))
     display(sample)
+
     
     '''
     ===============================================================
@@ -525,7 +529,7 @@ def mkpro(project_name: str) -> tuple:
 
     # Define the notebook and data directory path
     # These will be subdirectories within the main project directory
-    ndir = pdir / 'notebooks'
+    ndir = pdir / 'notebook'
     ddir = pdir / 'data'
 
     # Make sure that both subdirectories exist
