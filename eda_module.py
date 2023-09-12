@@ -1,50 +1,130 @@
 # TODO: Write outlier removal function (based on IQR, z-score, etc.)
 # TODO: Implement new mkpro function (allow user to create the directories if they don't exist).
 
-# python libs
+# Built-in libraries
 import os
 import glob
-from collections import OrderedDict
 import re
+import math
+import fnmatch
+from collections import OrderedDict
 from typing import List, Tuple, Union, Optional, Dict
-import warnings  # to ignore (some) warnings
 from pathlib import Path
 import datetime as dt
-import math
 
-# data manipulation libs
+# Logging library
+import logging
+
+# Data manipulation libraries
 import numpy as np
 import pandas as pd
+# Setting pandas display options
+pd.set_option('display.max_rows', 100)
+pd.set_option("display.max_columns", None)
+pd.options.display.float_format = '{:_.2f}'.format
 
-# data viz libs
-# https://pandas.pydata.org/pandas-docs/version/1.0/user_guide/style.html
+# Data visualization libraries
 from IPython.display import display, Markdown
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 sns.set(rc={"figure.figsize": (12, 8)})
 
-# format list to tabular form
+# Utility libraries
 from tabulate import tabulate
+import warnings  # For handling warnings
 
-# no. of rows to display; passing None displays all rows
-pd.set_option('display.max_rows', 100)
-
-# no. of cols to display; passing None displays all rows
-pd.set_option("display.max_columns", None)
-
-# float show comma separators
-pd.options.display.float_format = '{:_.2f}'.format
-
-# alternative:
-# df.head().style.format("{:,.0f}")
-# df.head().style.format({"col1": "{:,.0f}", "col2": "{:,.0f}"})
-# more here: https://pbpython.com/styling-pandas.html
-
-# to format integers in a dataframe use the following method
-#df.style.format(thousands=',')
-
+# Uncomment to ignore warnings
 # warnings.filterwarnings("ignore")
+
+# Notes:
+# 1. For formatting integers in a DataFrame:
+#    df.style.format(thousands=',')
+# 2. For specific column formatting in a DataFrame:
+#    df.head().style.format({"col1": "{:,.0f}", "col2": "{:,.0f}"})
+# More formatting options: https://pbpython.com/styling-pandas.html
+
+
+def read_data_files(directory_path: str, 
+                    source_column_name: str = 'source_file',
+                    file_types: list = ['.csv', '.tsv'],
+                    delimiter_map: dict = None,
+                    encoding: str = 'utf-8',
+                    skip_files: list = [],
+                    usecols: list = None,
+                    dtype: dict = None,
+                    on_error: str = 'warn',
+                    custom_readers: dict = None) -> pd.DataFrame:
+    """
+    Read data files from a directory and append a new column with the source file name.
+
+    Parameters
+    ----------
+    directory_path : str
+        Path to the directory containing data files.
+    source_column_name : str, optional
+        Name of the column to append with the source file name. Default is 'source_file'.
+    file_types : list, optional
+        List of file extensions to consider. Default is ['.csv', '.tsv'].
+    delimiter_map : dict, optional
+        Dictionary mapping file extensions to delimiters.
+    encoding : str, optional
+        File encoding. Default is 'utf-8'.
+    skip_files : list, optional
+        List of filenames or patterns to skip.
+    usecols : list, optional
+        List of columns to read.
+    dtype : dict, optional
+        Dictionary specifying data types for columns.
+    on_error : str, optional
+        Behavior on encountering an error. Can be 'skip', 'raise', or 'warn'. Default is 'warn'.
+    custom_readers : dict, optional
+        Dictionary mapping file extensions to custom reading functions.
+
+    Returns
+    -------
+    pd.DataFrame
+        Concatenated DataFrame of all the read files or None if no valid files were found.
+    """
+
+    if delimiter_map is None:
+        delimiter_map = {'.csv': ',', '.tsv': '\t'}
+
+    data_files = [f for f in os.listdir(directory_path) if any(f.endswith(ft) for ft in file_types)]
+
+    if not data_files:
+        logging.warning(f"No matching files found in directory: {directory_path}")
+        return None
+
+    dfs = []
+
+    for data_file in data_files:
+        # Skip files if they match any pattern in skip_files
+        if any(fnmatch.fnmatch(data_file, pattern) for pattern in skip_files):
+            continue
+
+        try:
+            filepath = os.path.join(directory_path, data_file)
+            file_ext = os.path.splitext(data_file)[-1]
+
+            # Use custom reader if available for the file extension
+            if custom_readers and file_ext in custom_readers:
+                df = custom_readers[file_ext](filepath)
+            else:
+                df = pd.read_csv(filepath, delimiter=delimiter_map.get(file_ext, ','), 
+                                 encoding=encoding, usecols=usecols, dtype=dtype)
+                
+            df[source_column_name] = data_file
+            dfs.append(df)
+            logging.info(f"Successfully processed {data_file}")
+            
+        except Exception as e:
+            logging.error(f"Error processing {data_file}: {e}")
+            if on_error == 'raise':
+                raise
+            elif on_error == 'warn':
+                logging.warning(f"Skipped {data_file} due to error: {e}")
+
+    return pd.concat(dfs, ignore_index=True) if dfs else None
 
 def table(
         df: pd.DataFrame, 
