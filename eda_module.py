@@ -1,5 +1,6 @@
 # TODO: Write outlier removal function (based on IQR, z-score, etc.)
 # TODO: Implement new mkpro function (allow user to create the directories if they don't exist).
+# TODO: Create sql directory in the mkpro func 
 
 # Built-in libraries
 import os
@@ -43,6 +44,211 @@ import warnings  # For handling warnings
 #    df.head().style.format({"col1": "{:,.0f}", "col2": "{:,.0f}"})
 # More formatting options: https://pbpython.com/styling-pandas.html
 
+# def write_data_files(df: pd.DataFrame, directory_path: str, source_column_name: str = 'source_file',
+#                      delimiter_map: dict = None, encoding: str = 'utf-8',
+#                      overwrite: bool = False, create_backup: bool = False,
+#                      compression: str = None, custom_writers: dict = None,
+#                      dry_run: bool = True) -> Dict[str, str]:
+#     """
+#     Writes the modified DataFrame back to files based on the source_file column.
+    
+#     Parameters
+#     ----------
+#     df : pd.DataFrame
+#         The DataFrame containing the data to write.
+#     directory_path : str
+#         Path to the directory where the files will be written.
+#     source_column_name : str, optional
+#         Name of the column indicating the source file. Default is 'source_file'.
+#     delimiter_map : dict, optional
+#         Dictionary mapping file extensions to delimiters.
+#     encoding : str, optional
+#         Encoding to use for writing the files. Default is 'utf-8'.
+#     overwrite : bool, optional
+#         Whether to overwrite existing files. Default is False.
+#     create_backup : bool, optional
+#         Whether to create a backup of the original file if overwriting. Default is False.
+#     compression : str, optional
+#         String indicating the compression mode. Options are {'infer', 'gzip', 'bz2', 'zip', 'xz', None}. Default is None.
+#     custom_writers : dict, optional
+#         Dictionary mapping file extensions to custom writing functions.
+#     dry_run : bool, optional
+#         If True, the function will only log the actions it would take without actually performing any changes.
+#         Default is True.
+    
+#     Returns
+#     -------
+#     Dict[str, str]
+#         A report of the actions taken (or would be taken, in dry run mode) for each file.
+#     """
+
+#     if delimiter_map is None:
+#         delimiter_map = {'.csv': ',', '.tsv': '\t'}
+
+#     # Ensure the directory exists
+#     os.makedirs(directory_path, exist_ok=True)
+
+#     # Get unique source files from the DataFrame
+#     source_files = df[source_column_name].unique()
+
+#     report = {}
+
+#     for source_file in source_files:
+#         file_path = os.path.join(directory_path, source_file)
+
+#         if os.path.exists(file_path):
+#             # Determine the delimiter based on the file extension
+#             file_ext = os.path.splitext(source_file)[-1]
+#             delimiter = delimiter_map.get(file_ext, ',')
+
+#             # Read existing file
+#             existing_df = pd.read_csv(file_path, delimiter=delimiter, encoding=encoding)
+
+#             # Filter the DataFrame based on the source file
+#             subset_df = df[df[source_column_name] == source_file].copy()
+
+#             # Drop the source file column
+#             subset_df.drop(columns=[source_column_name], inplace=True)
+
+#             # Compare existing data with new data
+#             if existing_df.equals(subset_df):
+#                 msg = f"No changes detected in {source_file}. Skipping."
+#                 logging.info(msg)
+#                 report[source_file] = "Skipped - No changes"
+#                 continue
+
+#             if not overwrite:
+#                 msg = f"File {source_file} already exists. Would skip since overwrite is set to False."
+#                 logging.info(f"(DRY RUN) {msg}" if dry_run else msg)
+#                 report[source_file] = "Would Skip - File exists"
+#                 continue
+
+#             if create_backup:
+#                 backup_path = file_path + dt.datetime.now().strftime(".backup_%Y%m%d_%H%M%S")
+#                 msg = f"Would create backup for {source_file} at {backup_path}"
+#                 logging.info(f"(DRY RUN) {msg}" if dry_run else msg)
+#                 if not dry_run:
+#                     os.rename(file_path, backup_path)
+#                     logging.info(f"Backup created for {source_file} at {backup_path}")
+
+#         try:
+#             if custom_writers and file_ext in custom_writers:
+#                 msg = f"Would use custom writer for {source_file}"
+#                 logging.info(f"(DRY RUN) {msg}" if dry_run else msg)
+#                 if not dry_run:
+#                     custom_writers[file_ext](subset_df, file_path)
+#             else:
+#                 msg = f"Would write data to {source_file}"
+#                 logging.info(f"(DRY RUN) {msg}" if dry_run else msg)
+#                 if not dry_run:
+#                     subset_df.to_csv(file_path, index=False, sep=delimiter, encoding=encoding, compression=compression)
+#             report[source_file] = "Would Write Successfully"
+#         except Exception as e:
+#             msg = f"Error writing to {source_file}: {e}"
+#             logging.info(f"(DRY RUN) {msg}" if dry_run else msg)
+#             report[source_file] = f"Would Error - {str(e)}"
+
+#     return report
+
+# def write_data_files(df: pd.DataFrame,
+#                      directory_path: str, 
+#                      source_column_name: str = 'source_file',
+#                      delimiter_map: dict = None, 
+#                      encoding: str = 'utf-8',
+#                      overwrite: bool = False, 
+#                      create_backup: bool = False,
+#                      compression: str = None, 
+#                      custom_writers: dict = None,
+#                      dry_run: bool = True) -> Dict[str, str]:
+#     """
+#     Writes the modified DataFrame back to files based on the source_file column.
+    
+#     Parameters
+#     ----------
+#     df : pd.DataFrame
+#         The DataFrame containing the data to write.
+#     directory_path : str
+#         Path to the directory where the files will be written.
+#     source_column_name : str, optional
+#         Name of the column indicating the source file. Default is 'source_file'.
+#     delimiter_map : dict, optional
+#         Dictionary mapping file extensions to delimiters.
+#     encoding : str, optional
+#         Encoding to use for writing the files. Default is 'utf-8'.
+#     overwrite : bool, optional
+#         Whether to overwrite existing files. Default is False.
+#     create_backup : bool, optional
+#         Whether to create a backup of the original file if overwriting. Default is False.
+#     compression : str, optional
+#         String indicating the compression mode. Options are {'infer', 'gzip', 'bz2', 'zip', 'xz', None}. Default is None.
+#     custom_writers : dict, optional
+#         Dictionary mapping file extensions to custom writing functions.
+#     dry_run : bool, optional
+#         If True, the function will only log the actions it would take without actually performing any changes.
+#         Default is True.
+    
+#     Returns
+#     -------
+#     Dict[str, str]
+#         A report of the actions taken (or would be taken, in dry run mode) for each file.
+#     """
+
+#     if delimiter_map is None:
+#         delimiter_map = {'.csv': ',', '.tsv': '\t'}
+
+#     # Ensure the directory exists
+#     os.makedirs(directory_path, exist_ok=True)
+
+#     # Get unique source files from the DataFrame
+#     source_files = df[source_column_name].unique()
+
+#     report = {}
+
+#     for source_file in source_files:
+#         file_path = os.path.join(directory_path, source_file)
+        
+#         if os.path.exists(file_path):
+#             if not overwrite:
+#                 msg = f"File {source_file} already exists. Would skip since overwrite is set to False."
+#                 logging.info(f"(DRY RUN) {msg}" if dry_run else msg)
+#                 report[source_file] = "Would Skip - File exists"
+#                 continue
+#             elif create_backup:
+#                 backup_path = file_path + dt.datetime.now().strftime(".backup_%Y%m%d_%H%M%S")
+#                 msg = f"Would create backup for {source_file} at {backup_path}"
+#                 logging.info(f"(DRY RUN) {msg}" if dry_run else msg)
+#                 if not dry_run:
+#                     os.rename(file_path, backup_path)
+#                     logging.info(f"Backup created for {source_file} at {backup_path}")
+
+#         # Filter the DataFrame based on the source file
+#         subset_df = df[df[source_column_name] == source_file].copy()
+
+#         # Drop the source file column
+#         subset_df.drop(columns=[source_column_name], inplace=True)
+
+#         # Determine the delimiter based on the file extension
+#         file_ext = os.path.splitext(source_file)[-1]
+#         delimiter = delimiter_map.get(file_ext, ',')
+
+#         try:
+#             if custom_writers and file_ext in custom_writers:
+#                 msg = f"Would use custom writer for {source_file}"
+#                 logging.info(f"(DRY RUN) {msg}" if dry_run else msg)
+#                 if not dry_run:
+#                     custom_writers[file_ext](subset_df, file_path)
+#             else:
+#                 msg = f"Would write data to {source_file}"
+#                 logging.info(f"(DRY RUN) {msg}" if dry_run else msg)
+#                 if not dry_run:
+#                     subset_df.to_csv(file_path, index=False, sep=delimiter, encoding=encoding, compression=compression)
+#             report[source_file] = "Would Write Successfully"
+#         except Exception as e:
+#             msg = f"Error writing to {source_file}: {e}"
+#             logging.info(f"(DRY RUN) {msg}" if dry_run else msg)
+#             report[source_file] = f"Would Error - {str(e)}"
+
+#     return report
 
 def read_data_files(directory_path: str, 
                     source_column_name: str = 'source_file',
