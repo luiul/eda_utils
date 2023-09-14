@@ -259,7 +259,8 @@ def read_data_files(directory_path: str,
                     usecols: list = None,
                     dtype: dict = None,
                     on_error: str = 'warn',
-                    custom_readers: dict = None) -> pd.DataFrame:
+                    custom_readers: dict = None
+                    ) -> pd.DataFrame:
     """
     Read data files from a directory and append a new column with the source file name.
 
@@ -342,7 +343,8 @@ def table(
         sns_corr: bool = False, 
         max_list_len: int = 10, 
         max_concat_list_len: int = 70,
-        seed: int = 42
+        seed: int = 42, 
+        sample_size: int = 3
         ) -> None:
     """
     Prints basic dataframe stats in a tabular form, visualizes columns, and provides descriptive statistics.
@@ -442,7 +444,7 @@ def table(
     display(Markdown(f"**Dataframe info:** Number of records: {len(df):_}"))
     # display(Markdown(table))
     print(table)
-    sample = df.sample(10, random_state=seed) if len(df) > 10 else df
+    sample = df.sample(sample_size, random_state=seed) if len(df) > sample_size else df
     display(Markdown("**Sample data:**"))
     display(sample)
 
