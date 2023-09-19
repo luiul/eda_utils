@@ -219,6 +219,4 @@ poetry.toml
 # Additional rules
 __init__.py
 
-test.ipynb
-
-1s2e9o.md
+playground/
