@@ -219,4 +219,4 @@ poetry.toml
 # Additional rules
 __init__.py
 
-playground/
+/playground/
