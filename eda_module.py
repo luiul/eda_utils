@@ -1,6 +1,7 @@
 # TODO: Write outlier removal function (based on IQR, z-score, etc.)
 # TODO: Implement new mkpro function (allow user to create the directories if they don't exist).
 # TODO: Create sql directory in the mkpro func 
+# TODO: Revise the WAVG funcs
 
 # Built-in libraries
 import os
@@ -43,6 +44,102 @@ import warnings  # For handling warnings
 # 2. For specific column formatting in a DataFrame:
 #    df.head().style.format({"col1": "{:,.0f}", "col2": "{:,.0f}"})
 # More formatting options: https://pbpython.com/styling-pandas.html
+
+def get_default_date_format(freq: str) -> str:
+    """
+    Returns the default date format based on the given frequency.
+    """
+    format_map = {
+        'D': '%Y-%m-%d',
+        'MS': '%Y-%m',
+        # 'MS': '%Y-%m-%d', # Uncomment this line to return daily format for monthly start dates
+        'M': '%Y-%m-%d',
+        'AS': '%Y',
+        'QS': '%Y-%m',
+        'W': '%Y-%m-%d',
+        # Add other frequencies and their formats if needed
+    }
+    
+    return format_map.get(freq, '%Y-%m-%d')  # Default to daily format if not found
+
+def expand_dates_to_range(df: pd.DataFrame, 
+                          start_col: str = 'start_date', 
+                          end_col: str = 'end_date', 
+                          dates_col: str = 'expanded_dates', 
+                          date_format: str = 'auto',
+                          freq: str = 'MS',
+                          inclusive: bool = False,
+                          inplace: bool = False
+                          ) -> pd.DataFrame:
+    """
+    Adds a column to the DataFrame that contains a list of dates in a specified format 
+    between the dates in the provided start and end columns based on a specified frequency.
+
+    Parameters:
+    - df (pd.DataFrame): The input DataFrame.
+    - start_col (str): The name of the start date column. Default is 'start_date'.
+    - end_col (str): The name of the end date column. Default is 'end_date'.
+    - dates_col (str): The name of the output column containing the list of dates. Default is 'expanded_dates'.
+    - date_format (str): The format in which dates should be represented. Default is '%Y-%m'.
+    - freq (str): The frequency for generating dates. Default is 'MS' (Month start frequency).
+    - inclusive (bool): Whether to include the end_date in the list. Default is False.
+    - inplace (bool): Whether to modify the original DataFrame or return a new one. Default is False.
+
+    Returns:
+    - pd.DataFrame: The DataFrame with the added dates column.
+
+    Examples:
+    1. Monthly Start Dates (default behavior):
+       - `freq`: 'MS'
+       - Output: ['2021-01', '2021-02', ...]
+       
+    2. Monthly End Dates:
+       - `freq`: 'M'
+       - Output: ['2021-01-31', '2021-02-28', ...] when using date_format='%Y-%m-%d'
+       
+    3. Daily Dates:
+       - `freq`: 'D'
+       - Output: ['2021-01-01', '2021-01-02', ...] when using date_format='%Y-%m-%d'
+       
+    4. Yearly Start Dates:
+       - `freq`: 'AS'
+       - Output: ['2021', '2022', ...] when using date_format='%Y'
+       
+    5. Quarterly Start Dates:
+       - `freq`: 'QS'
+       - Output: ['2021-01', '2021-04', ...]
+       
+    6. Inclusive Monthly Start Dates:
+       - `freq`: 'MS', `inclusive`: True
+       - Output: ['2021-01', '2021-02', '2021-03', ...] when the end_date is within March.
+    """
+    
+    # Error handling for non-existent columns
+    if start_col not in df.columns or end_col not in df.columns:
+        raise ValueError(f"Columns {start_col} and/or {end_col} not found in the DataFrame.")
+    
+    # If date_format is set to 'auto', derive it based on frequency
+    if date_format == 'auto':
+        date_format = get_default_date_format(freq)
+    
+    df_copy = df.copy() if not inplace else df
+    
+    # Cast start_date and end_date to datetime
+    df_copy[start_col] = pd.to_datetime(df_copy[start_col])
+    df_copy[end_col] = pd.to_datetime(df_copy[end_col])
+
+    # Function to generate a list of dates in the specified format between two dates based on a specified frequency
+    def get_dates(start, end):
+        if inclusive:
+            end = end + pd.offsets.DateOffset(days=1)
+        dates = pd.date_range(start=start, end=end, freq=freq, closed='left')
+        # For the 'MS' frequency, dates will be returned in our custom date format
+        return dates.strftime(date_format).tolist()
+
+    # Create the new column with the dates
+    df_copy[dates_col] = df_copy.apply(lambda row: get_dates(row[start_col], row[end_col]), axis=1)
+    
+    return df_copy
 
 # def write_data_files(df: pd.DataFrame, directory_path: str, source_column_name: str = 'source_file',
 #                      delimiter_map: dict = None, encoding: str = 'utf-8',
@@ -640,7 +737,9 @@ def flatten_multiindex(df: pd.DataFrame) -> List[str]:
     # Return the list of column names
     return cols
 
-def wavg(df: pd.DataFrame, values: str, weights: str) -> float:
+def wavg(df: pd.DataFrame, 
+         values: str,
+         weights: str) -> float:
     """
     This function computes the weighted average of a given dataframe column.
 
@@ -663,8 +762,13 @@ def wavg(df: pd.DataFrame, values: str, weights: str) -> float:
 
     return np.average(valid_df[values], weights=valid_df[weights])
 
-def wavg_grouped(df: pd.DataFrame, values: str, weights: str, group: Union[str, list], 
-                 merge: bool = False, nan_for_zero_weights: bool = False) -> pd.DataFrame:
+def wavg_grouped(df: pd.DataFrame, 
+                 values: str, 
+                 weights: str, 
+                 group: Union[str, list], 
+                 merge: bool = False, 
+                 nan_for_zero_weights: bool = False
+                 ) -> pd.DataFrame:
     """
     This function computes the weighted average of a given dataframe column within specified groups.
 
