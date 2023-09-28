@@ -75,6 +75,7 @@ def expand_dates_to_range(
     freq: str = "MS",
     inclusive: bool = False,
     inplace: bool = False,
+    closed: str = None,
 ) -> pd.DataFrame:
     """
     Adds a column to the DataFrame that contains a list of dates in a specified format
@@ -139,7 +140,8 @@ def expand_dates_to_range(
     def get_dates(start, end):
         if inclusive:
             end = end + pd.offsets.DateOffset(days=1)
-        dates = pd.date_range(start=start, end=end, freq=freq, closed="left")
+        # Written for Pandas 1.3; note that in newer versions closed has been renamed to inclusive
+        dates = pd.date_range(start=start, end=end, freq=freq, closed=closed)
         # For the 'MS' frequency, dates will be returned in our custom date format
         return dates.strftime(date_format).tolist()
 
