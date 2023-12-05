@@ -842,40 +842,48 @@ def print_list(obj):
         print(item)
 
 
-def mkpro(project_name: str) -> tuple:
+def mkpro(project_path: Path = None, create_project_dir: bool = False) -> tuple:
     """
-    Given a project name, create the necessary directories.
+    Create the necessary directories for a project.
 
     Parameters:
-    project_name (str): The name of the project.
+    project_path (Path): The full path to the project directory. If not provided, it's assumed to be the parent of the 'notebook' directory.
+    create_project_dir (bool): If True, the project directory will be created if it does not exist. Default is False.
 
     Returns:
-    tuple: The Paths to the project, notebooks, and data directories.
+    tuple of Path: The paths to the project, notebook, and data directories.
     """
-    # Check that the project_name is not None or empty
-    if not project_name:
-        print(
-            "The project_name argument is missing or empty. Please provide a valid project name."
-        )
-        return
+    if project_path is None:
+        current_path = Path.cwd()
+        while current_path != current_path.root:
+            if current_path.name == "notebook":
+                project_path = current_path.parent
+                break
+            current_path = current_path.parent
 
-    # Define the main project directory path
-    # The directory is assumed to exist
-    pdir = Path.home() / "projects" / project_name
+    # Check if project_path is not an empty string, None or a non-existent directory
+    if not project_path or not project_path.is_dir():
+        logging.error(f"Invalid project path: {project_path}")
+        return None
 
     # Define the notebook and data directory path
-    # These will be subdirectories within the main project directory
-    ndir = pdir / "notebook"
-    ddir = pdir / "data"
+    ndir = project_path / "notebook"
+    ddir = project_path / "data"
 
-    # Make sure that both subdirectories exist
-    # This will create the directories if they do not exist
-    # An error will be thrown if the parent directory does not exist
-    for directory in [ndir, ddir]:
-        directory.mkdir(exist_ok=True)
-        print(f"Directory {directory} checked or created.")
+    # Create directories
+    for directory in ([project_path] if create_project_dir else []) + [ndir, ddir]:
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+            print(f"Directory {directory} checked or created.")
+        except Exception as e:
+            logging.error(f"Error creating directory {directory}: {e}")
+            return None
 
-    return pdir, ndir, ddir
+    return project_path, ndir, ddir
+
+
+# Example usage
+pdir, ndir, ddir = mkpro()
 
 
 def fpath(path, new_file="", new_root="ddir", root_idx_value="data"):
