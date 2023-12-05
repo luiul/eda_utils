@@ -1,7 +1,14 @@
+# TODO: Expand read_data_files function to remove columns after src_file column
+# TODO: Change how the table fund displays list(-like) objects
+# TODO: Implement a form of col_types func in the table func
+# TODO: SQL connector function (with .env file and example.env in the repo)
+
 # TODO: Write outlier removal function (based on IQR, z-score, etc.)
 # TODO: Implement new mkpro function (allow user to create the directories if they don't exist).
 # TODO: Create sql directory in the mkpro func
 # TODO: Revise the WAVG funcs
+
+# TODO: add loging functionality to all functions
 
 # Built-in libraries
 import os
@@ -46,6 +53,59 @@ import warnings  # For handling warnings
 # 2. For specific column formatting in a DataFrame:
 #    df.head().style.format({"col1": "{:,.0f}", "col2": "{:,.0f}"})
 # More formatting options: https://pbpython.com/styling-pandas.html
+
+
+def col_types(df):
+    """
+    Explores the data types of the elements in each column of a DataFrame.
+
+    For each column, this function will print:
+    - The unique data types present in the column.
+    - The count of each data type.
+
+    Parameters:
+    - df (pd.DataFrame): The DataFrame to explore.
+
+    Returns:
+    - None: This function prints the results and doesn't return anything.
+    """
+    for column in df.columns:
+        print(f"Column: {column}")
+
+        # Unique data types in the column
+        unique_types = list(set(map(type, df[column])))
+        print("Unique Types:", [t.__name__ for t in unique_types])
+
+        # Count of each data type
+        type_counts = df[column].map(type).value_counts().rename(lambda x: x.__name__)
+        print("Type Counts:\n", type_counts)
+
+        print("-" * 50)  # just for visual separation
+
+
+# TODO: Generalize, i.e. use any series, lists, dictionary keys or values, etc. as input.
+def set_diff(A, B=None):
+    """
+    Determine the symmetric difference details between two sets or pandas Series.
+
+    Parameters:
+    - A: First set or pandas Series
+    - B: (Optional) Second set or pandas Series. If not provided, returns the set representation of A.
+
+    Returns:
+    - If B is provided: Tuple of two sets:
+      1. Elements present in A but not in B
+      2. Elements present in B but not in A
+    - If B is not provided: Set representation of A
+    """
+    if isinstance(A, pd.Series):
+        A = set(A)
+    if B is not None:
+        if isinstance(B, pd.Series):
+            B = set(B)
+        return (A - B, B - A)
+    else:
+        return A
 
 
 def get_default_date_format(freq: str) -> str:
@@ -260,9 +320,15 @@ def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
     # Create a copy of the input DataFrame to avoid modifying the original
     df: pd.DataFrame = main_df.copy()
 
+    # Helper function to convert item to string
+    def item_to_string(item):
+        if isinstance(item, (list, tuple)):  # Check if item is iterable
+            return ",".join(map(str, item))
+        return str(item)  # If not, just convert the item to string
+
     # Iterate over each column and convert it to a string
     for col in cols:
-        df[col] = pd.Series([",".join(map(str, l)) for l in df[col]])
+        df[col] = df[col].apply(item_to_string)
 
     return df
 
@@ -554,6 +620,10 @@ def table(
         plt.show()
 
 
+# Create a shorter alias for the table function
+tt = table
+
+
 def all_lists_to_string(main_df: pd.DataFrame) -> pd.DataFrame:
     """Convert all list columns to string in a Pandas DataFrame
 
@@ -700,6 +770,7 @@ def create_store_table(file_path: str) -> pd.DataFrame:
     return table
 
 
+# TODO: Overwrite the file if it is emtpy
 def create_store_mapping(file_path: str) -> dict:
     """Reads, saves, or creates a mapping file and returns a dictionary of column name mappings.
 
