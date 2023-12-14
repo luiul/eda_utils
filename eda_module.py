@@ -201,7 +201,7 @@ def expand_dates_to_range(
         if inclusive:
             end = end + pd.offsets.DateOffset(days=1)
         # Written for Pandas 1.3; note that in newer versions closed has been renamed to inclusive
-        dates = pd.date_range(start=start, end=end, freq=freq, closed=closed)
+        dates = pd.date_range(start=start, end=end, freq=freq)
         # For the 'MS' frequency, dates will be returned in our custom date format
         return dates.strftime(date_format).tolist()
 
@@ -880,10 +880,6 @@ def mkpro(project_path: Path = None, create_project_dir: bool = False) -> tuple:
             return None
 
     return project_path, ndir, ddir
-
-
-# Example usage
-pdir, ndir, ddir = mkpro()
 
 
 def fpath(path, new_file="", new_root="ddir", root_idx_value="data"):
