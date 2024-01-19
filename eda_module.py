@@ -1,3 +1,5 @@
+# TODO: mkpro should also make the sdir (for sql queries)
+
 # TODO: Expand read_data_files function to remove columns after src_file column
 # TODO: Change how the table fund displays list(-like) objects
 # TODO: Implement a form of col_types func in the table func
@@ -869,9 +871,14 @@ def mkpro(project_path: Path = None, create_project_dir: bool = False) -> tuple:
     # Define the notebook and data directory path
     ndir = project_path / "notebook"
     ddir = project_path / "data"
+    sdir = project_path / "sql"
 
     # Create directories
-    for directory in ([project_path] if create_project_dir else []) + [ndir, ddir]:
+    for directory in ([project_path] if create_project_dir else []) + [
+        ndir,
+        ddir,
+        sdir,
+    ]:
         try:
             directory.mkdir(parents=True, exist_ok=True)
             print(f"Directory {directory} checked or created.")
@@ -879,7 +886,7 @@ def mkpro(project_path: Path = None, create_project_dir: bool = False) -> tuple:
             logging.error(f"Error creating directory {directory}: {e}")
             return None
 
-    return project_path, ndir, ddir
+    return project_path, ndir, ddir, sdir
 
 
 def fpath(path, new_file="", new_root="ddir", root_idx_value="data"):
