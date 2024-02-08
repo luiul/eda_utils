@@ -9,9 +9,8 @@
 # TODO: add loging functionality to all functions
 
 # Standard libraries
-import datetime as dt
+
 import fnmatch
-import glob
 
 # Logging library
 import logging
@@ -19,32 +18,39 @@ import math
 
 # Built-in libraries
 import os
-import re
-from collections import OrderedDict
+import warnings  # For handling warnings
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+
+# Unused libraries
+# import datetime as dt
+# import glob
+# import re
+# from collections import OrderedDict
+from typing import List, Union
+
+import matplotlib.pyplot as plt
 
 # Data manipulation libraries
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
-# Setting pandas display options
+# Data visualization libraries
+from IPython.display import Markdown, display  # type: ignore
+
+# Utility libraries
+from tabulate import tabulate
+
+# from typing import Dict, Optional, Tuple, Union
+
+
+# Pandas settings for better display
 pd.set_option("display.max_rows", 100)
 pd.set_option("display.max_columns", None)
 pd.options.display.float_format = "{:_.2f}".format
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-
-# Data visualization libraries
-from IPython.display import Markdown, display
-
+# Seaborne settings
 sns.set(rc={"figure.figsize": (12, 8)})
-
-import warnings  # For handling warnings
-
-# Utility libraries
-from tabulate import tabulate
 
 # Uncomment to ignore warnings
 # warnings.filterwarnings("ignore")
@@ -137,7 +143,7 @@ def expand_dates_to_range(
     freq: str = "MS",
     inclusive: bool = False,
     inplace: bool = False,
-    closed: str = None,
+    include_boundries: str = 'both',
 ) -> pd.DataFrame:
     """
     Adds a column to the DataFrame that contains a list of dates in a specified format
@@ -150,7 +156,7 @@ def expand_dates_to_range(
     - dates_col (str): The name of the output column containing the list of dates. Default is 'expanded_dates'.
     - date_format (str): The format in which dates should be represented. Default is '%Y-%m'.
     - freq (str): The frequency for generating dates. Default is 'MS' (Month start frequency).
-    - inclusive (bool): Whether to include the end_date in the list. Default is False.
+    - inclusive (bool): Whether to include the end_date day in the list. Default is False.
     - inplace (bool): Whether to modify the original DataFrame or return a new one. Default is False.
 
     Returns:
@@ -201,7 +207,7 @@ def expand_dates_to_range(
         if inclusive:
             end = end + pd.offsets.DateOffset(days=1)
         # Written for Pandas 1.3; note that in newer versions closed has been renamed to inclusive
-        dates = pd.date_range(start=start, end=end, freq=freq)
+        dates = pd.date_range(start=start, end=end, freq=freq, inclusive=include_boundries)  # type: ignore
         # For the 'MS' frequency, dates will be returned in our custom date format
         return dates.strftime(date_format).tolist()
 
@@ -215,13 +221,13 @@ def read_data_files(
     directory_path: str,
     source_column_name: str = "src_file",
     file_types: list = [".csv", ".tsv"],
-    delimiter_map: dict = None,
+    delimiter_map: dict = {},
     encoding: str = "utf-8",
     skip_files: list = [],
-    usecols: list = None,
-    dtype: dict = None,
+    usecols: list = [],
+    dtype: dict = {},
     on_error: str = "warn",
-    custom_readers: dict = None,
+    custom_readers: dict = {},
 ) -> pd.DataFrame:
     """
     Read data files from a directory and append a new column with the source file name.
@@ -262,7 +268,7 @@ def read_data_files(
 
     if not data_files:
         logging.warning(f"No matching files found in directory: {directory_path}")
-        return None
+        return pd.DataFrame()
 
     dfs = []
 
@@ -298,7 +304,7 @@ def read_data_files(
             elif on_error == "warn":
                 logging.warning(f"Skipped {data_file} due to error: {e}")
 
-    return pd.concat(dfs, ignore_index=True) if dfs else None
+    return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
 
 
 def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
@@ -329,7 +335,7 @@ def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
 
 def table(
     df: pd.DataFrame,
-    columns: Union[str, List[str]] = None,
+    viz_cols: Union[str, List[str]] = [],
     n_cols: int = 3,
     descriptive: bool = False,
     transpose_des: bool = True,
@@ -395,9 +401,9 @@ def table(
         #   - the number of unique values (if the column is an array)
         #   - the number of unique values (if the number of unique values is above the threshold)
         #   - the unique values themselves (if the number of unique values is below the threshold)
-        if type(df[col].iloc[0]) == np.ndarray:
+        if isinstance(df[col].iloc[0], np.ndarray):
             col_transformed: pd.Series = pd.Series(
-                [",".join(map(str, l)) for l in df[col]]
+                [",".join(map(str, arr)) for arr in df[col]]
             ).sort_values()  # convert array values to a string with elements separated by commas
             row.extend([f"{col_transformed.nunique():_}"])  # add the number of unique values to the row
             row.extend(
@@ -485,42 +491,42 @@ def table(
     # Print correlation matrix using seaborn
     if sns_corr:
         display(Markdown("**Correlation matrix:**"))
-        corr = df.corr()
-        from matplotlib import MatplotlibDeprecationWarning
+        # corr = df.corr()
+        # from matplotlib import MatplotlibDeprecationWarning
 
-        warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
+        # warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
         plt.figure(figsize=(10, 8))
         plt.grid(False)  # Turn off grid lines
-        sns.heatmap(corr, annot=True, fmt=".2f", cmap="magma")
+        sns.heatmap(df.corr(), annot=True, fmt=".2f", cmap="magma")
         plt.show()
-        warnings.filterwarnings("default", category=MatplotlibDeprecationWarning)
+        # warnings.filterwarnings("default", category=MatplotlibDeprecationWarning)
 
     """
     ========================================
     Visualize columns if columns is not None
     ========================================
     """
-    if columns is None:
+    if viz_cols is None:
         return
     # If columns is 'all', plot all columns
-    if columns == "all":
-        numeric_cols = df.select_dtypes(include=[np.int64, np.float64]).columns.tolist()
+    if viz_cols == "all":
+        numeric_cols = df.select_dtypes(include=["int64", "float64"]).columns.tolist()
         categorical_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
     else:
         # Make sure that the columns exist in the dataframe
-        if isinstance(columns, str):
-            columns = [columns]
+        if isinstance(viz_cols, str):
+            viz_cols = [viz_cols]
 
-        nonexistent_cols = [col for col in columns if col not in df.columns]
-        if nonexistent_cols and columns != ["all"]:
+        nonexistent_cols = [col for col in viz_cols if col not in df.columns]
+        if nonexistent_cols and viz_cols != ["all"]:
             warnings.warn(f"The following columns do not exist in the dataframe: {nonexistent_cols}")
 
-        columns = [col for col in columns if col in df.columns]
-        if not columns:
+        viz_cols = [col for col in viz_cols if col in df.columns]
+        if not viz_cols:
             warnings.warn("No columns to plot")
             return
-        numeric_cols = [col for col in columns if df[col].dtype in [np.int64, np.float64]]
-        categorical_cols = [col for col in columns if df[col].dtype in ["object", "category"]]
+        numeric_cols = [col for col in viz_cols if df[col].dtype in [np.int64, np.float64]]
+        categorical_cols = [col for col in viz_cols if df[col].dtype in ["object", "category"]]
 
     # Filtering columns where nunique is not 1
     numeric_cols = [col for col in numeric_cols if df[col].nunique() > 1]
@@ -611,7 +617,7 @@ def all_lists_to_string(main_df: pd.DataFrame) -> pd.DataFrame:
     # Iterate over each column and convert it to a string if it's a list or ndarray
     for col in df.columns:
         if isinstance(df[col].iloc[0], list) or isinstance(df[col].iloc[0], np.ndarray):
-            df[col] = pd.Series([", ".join(map(str, l)) for l in df[col]])
+            df[col] = pd.Series([", ".join(map(str, arr)) for arr in df[col]])
 
     return df
 
@@ -655,7 +661,7 @@ def wavg(df: pd.DataFrame, values: str, weights: str) -> float:
     if valid_df[weights].sum() == 0:
         raise ValueError("Sum of weights is zero, cannot perform division by zero.")
 
-    return np.average(valid_df[values], weights=valid_df[weights])
+    return float(np.average(valid_df[values], weights=valid_df[weights]))
 
 
 def wavg_grouped(
@@ -828,7 +834,7 @@ def mkpro(project_path: Path = None, create_project_dir: bool = False) -> tuple:
     # Check if project_path is not an empty string, None or a non-existent directory
     if not project_path or not project_path.is_dir():
         logging.error(f"Invalid project path: {project_path}")
-        return None
+        return ()
 
     # Define the notebook and data directory path
     ndir = project_path / "notebook"
@@ -846,7 +852,7 @@ def mkpro(project_path: Path = None, create_project_dir: bool = False) -> tuple:
             print(f"Directory {directory} checked or created.")
         except Exception as e:
             logging.error(f"Error creating directory {directory}: {e}")
-            return None
+            return ()
 
     return project_path, ndir, ddir, sdir
 
@@ -884,7 +890,7 @@ def fpath(path, new_file="", new_root="ddir", root_idx_value="data"):
         root_idx = parts.index(root_idx_value)
     except ValueError:
         # Raise an error if the root_idx is not found in the path
-        raise ValueError(f"The input path does not contain '{root_idx}'")
+        raise ValueError(f"The input path does not contain '{root_idx_value}'")
 
     # Create a new path by replacing root_idx with new_root and removing everything before root_idx
     new_parts = (new_root,) + parts[root_idx + 1 :]
