@@ -1,30 +1,28 @@
-# TODO: mkpro should also make the sdir (for sql queries)
-
 # TODO: Expand read_data_files function to remove columns after src_file column
 # TODO: Change how the table fund displays list(-like) objects
 # TODO: Implement a form of col_types func in the table func
 # TODO: SQL connector function (with .env file and example.env in the repo)
-
 # TODO: Write outlier removal function (based on IQR, z-score, etc.)
 # TODO: Implement new mkpro function (allow user to create the directories if they don't exist).
 # TODO: Create sql directory in the mkpro func
 # TODO: Revise the WAVG funcs
-
 # TODO: add loging functionality to all functions
 
-# Built-in libraries
-import os
-import glob
-import re
-import math
-import fnmatch
-from collections import OrderedDict
-from typing import List, Tuple, Union, Optional, Dict
-from pathlib import Path
+# Standard libraries
 import datetime as dt
+import fnmatch
+import glob
 
 # Logging library
 import logging
+import math
+
+# Built-in libraries
+import os
+import re
+from collections import OrderedDict
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple, Union
 
 # Data manipulation libraries
 import numpy as np
@@ -35,16 +33,18 @@ pd.set_option("display.max_rows", 100)
 pd.set_option("display.max_columns", None)
 pd.options.display.float_format = "{:_.2f}".format
 
-# Data visualization libraries
-from IPython.display import display, Markdown
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# Data visualization libraries
+from IPython.display import Markdown, display
+
 sns.set(rc={"figure.figsize": (12, 8)})
+
+import warnings  # For handling warnings
 
 # Utility libraries
 from tabulate import tabulate
-import warnings  # For handling warnings
 
 # Uncomment to ignore warnings
 # warnings.filterwarnings("ignore")
@@ -184,9 +184,7 @@ def expand_dates_to_range(
 
     # Error handling for non-existent columns
     if start_col not in df.columns or end_col not in df.columns:
-        raise ValueError(
-            f"Columns {start_col} and/or {end_col} not found in the DataFrame."
-        )
+        raise ValueError(f"Columns {start_col} and/or {end_col} not found in the DataFrame.")
 
     # If date_format is set to 'auto', derive it based on frequency
     if date_format == "auto":
@@ -208,9 +206,7 @@ def expand_dates_to_range(
         return dates.strftime(date_format).tolist()
 
     # Create the new column with the dates
-    df_copy[dates_col] = df_copy.apply(
-        lambda row: get_dates(row[start_col], row[end_col]), axis=1
-    )
+    df_copy[dates_col] = df_copy.apply(lambda row: get_dates(row[start_col], row[end_col]), axis=1)
 
     return df_copy
 
@@ -262,11 +258,7 @@ def read_data_files(
     if delimiter_map is None:
         delimiter_map = {".csv": ",", ".tsv": "\t"}
 
-    data_files = [
-        f
-        for f in os.listdir(directory_path)
-        if any(f.endswith(ft) for ft in file_types)
-    ]
+    data_files = [f for f in os.listdir(directory_path) if any(f.endswith(ft) for ft in file_types)]
 
     if not data_files:
         logging.warning(f"No matching files found in directory: {directory_path}")
@@ -386,9 +378,7 @@ def table(
     """
 
     # Identify columns that contain lists or arrays
-    list_cols = [
-        col for col in df.columns if isinstance(df[col].iloc[0], (list, np.ndarray))
-    ]
+    list_cols = [col for col in df.columns if isinstance(df[col].iloc[0], (list, np.ndarray))]
 
     # Convert those columns to strings
     if list_cols:
@@ -409,9 +399,7 @@ def table(
             col_transformed: pd.Series = pd.Series(
                 [",".join(map(str, l)) for l in df[col]]
             ).sort_values()  # convert array values to a string with elements separated by commas
-            row.extend(
-                [f"{col_transformed.nunique():_}"]
-            )  # add the number of unique values to the row
+            row.extend([f"{col_transformed.nunique():_}"])  # add the number of unique values to the row
             row.extend(
                 [
                     f"{col_transformed.isna().sum():_}",  # add the number of NAs in the column to the row
@@ -419,9 +407,7 @@ def table(
                 ]
             )
         elif df[col].nunique() > max_list_len:
-            row.extend(
-                [f"{df[col].nunique():_}"]
-            )  # add the number of unique values to the row
+            row.extend([f"{df[col].nunique():_}"])  # add the number of unique values to the row
             row.extend(
                 [
                     f"{df[col].isna().sum():_}",  # add the number of NAs in the column to the row
@@ -519,9 +505,7 @@ def table(
     # If columns is 'all', plot all columns
     if columns == "all":
         numeric_cols = df.select_dtypes(include=[np.int64, np.float64]).columns.tolist()
-        categorical_cols = df.select_dtypes(
-            include=["object", "category"]
-        ).columns.tolist()
+        categorical_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
     else:
         # Make sure that the columns exist in the dataframe
         if isinstance(columns, str):
@@ -529,20 +513,14 @@ def table(
 
         nonexistent_cols = [col for col in columns if col not in df.columns]
         if nonexistent_cols and columns != ["all"]:
-            warnings.warn(
-                f"The following columns do not exist in the dataframe: {nonexistent_cols}"
-            )
+            warnings.warn(f"The following columns do not exist in the dataframe: {nonexistent_cols}")
 
         columns = [col for col in columns if col in df.columns]
         if not columns:
             warnings.warn("No columns to plot")
             return
-        numeric_cols = [
-            col for col in columns if df[col].dtype in [np.int64, np.float64]
-        ]
-        categorical_cols = [
-            col for col in columns if df[col].dtype in ["object", "category"]
-        ]
+        numeric_cols = [col for col in columns if df[col].dtype in [np.int64, np.float64]]
+        categorical_cols = [col for col in columns if df[col].dtype in ["object", "category"]]
 
     # Filtering columns where nunique is not 1
     numeric_cols = [col for col in numeric_cols if df[col].nunique() > 1]
@@ -550,13 +528,9 @@ def table(
 
     # Checking if the lists are empty after filtering
     if not numeric_cols:
-        warnings.warn(
-            "All numeric columns have only one unique value and have been removed"
-        )
+        warnings.warn("All numeric columns have only one unique value and have been removed")
     if not categorical_cols:
-        warnings.warn(
-            "All categorical columns have only one unique value and have been removed"
-        )
+        warnings.warn("All categorical columns have only one unique value and have been removed")
 
     # Histograms for each numeric column
     if n_cols > 10:
@@ -588,9 +562,7 @@ def table(
     # Create subplots for numeric columns
     if numeric_cols:
         display(Markdown("**Histograms of numeric columns:**"))
-        n_rows = math.ceil(
-            len(numeric_cols) / n_cols
-        )  # Calculate number of rows needed
+        n_rows = math.ceil(len(numeric_cols) / n_cols)  # Calculate number of rows needed
         fig, axs = plt.subplots(n_rows, n_cols, figsize=(20, 5 * n_rows))
         axs = axs.ravel()  # Flatten the axes array
         for i in range(n_rows * n_cols):
@@ -605,9 +577,7 @@ def table(
     # Create subplots for categorical columns
     if categorical_cols:
         display(Markdown("**Bar plots of categorical columns:**"))
-        n_rows = math.ceil(
-            len(categorical_cols) / n_cols
-        )  # Calculate number of rows needed
+        n_rows = math.ceil(len(categorical_cols) / n_cols)  # Calculate number of rows needed
         fig, axs = plt.subplots(n_rows, n_cols, figsize=(20, 5 * n_rows))
         axs = axs.ravel()  # Flatten the axes array
         for i in range(n_rows * n_cols):
@@ -723,9 +693,7 @@ def wavg_grouped(
 
     # Check if valid_df is empty
     if valid_df.empty:
-        raise ValueError(
-            "All values in the input DataFrame are missing, cannot perform weighted average."
-        )
+        raise ValueError("All values in the input DataFrame are missing, cannot perform weighted average.")
 
     # Check if any group has sum of weights equal to zero
     zero_weight_groups = valid_df.groupby(group).filter(lambda x: x[weights].sum() == 0)
@@ -733,21 +701,15 @@ def wavg_grouped(
     if not zero_weight_groups.empty:
         if nan_for_zero_weights:
             weighted_averages = valid_df.groupby(group).apply(
-                lambda x: np.average(x[values], weights=x[weights])
-                if x[weights].sum() != 0
-                else np.nan
+                lambda x: np.average(x[values], weights=x[weights]) if x[weights].sum() != 0 else np.nan
             )
         else:
-            zero_weight_group_values = (
-                zero_weight_groups[group].drop_duplicates().values.tolist()
-            )
+            zero_weight_group_values = zero_weight_groups[group].drop_duplicates().values.tolist()
             raise ValueError(
                 f"The following group(s) have sum of weights equal to zero: {zero_weight_group_values}. Cannot perform division by zero."
             )
     else:
-        weighted_averages = valid_df.groupby(group).apply(
-            lambda x: np.average(x[values], weights=x[weights])
-        )
+        weighted_averages = valid_df.groupby(group).apply(lambda x: np.average(x[values], weights=x[weights]))
 
     weighted_averages = weighted_averages.reset_index().rename(columns={0: "wavg"})
 
