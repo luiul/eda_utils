@@ -9,7 +9,6 @@
 # TODO: add loging functionality to all functions
 
 # Standard libraries
-
 import fnmatch
 
 # Logging library
@@ -26,7 +25,7 @@ from pathlib import Path
 # import glob
 # import re
 # from collections import OrderedDict
-from typing import List, Union
+from typing import Dict, List, Union
 
 import matplotlib.pyplot as plt
 
@@ -40,9 +39,6 @@ from IPython.display import Markdown, display  # type: ignore
 
 # Utility libraries
 from tabulate import tabulate
-
-# from typing import Dict, Optional, Tuple, Union
-
 
 # Pandas settings for better display
 pd.set_option("display.max_rows", 100)
@@ -219,70 +215,65 @@ def expand_dates_to_range(
 
 def read_data_files(
     directory_path: str,
-    source_column_name: str = "src_file",
+    src_col_name: str = "src_file_name",
     file_types: list = [".csv", ".tsv"],
-    delimiter_map: dict = {},
+    delimiter_map: dict = {".csv": ",", ".tsv": "\t"},  # Set default mapping directly
     encoding: str = "utf-8",
     skip_files: list = [],
-    usecols: list = [],
+    usecols: list = None,  # type: ignore
     dtype: dict = {},
     on_error: str = "warn",
     custom_readers: dict = {},
-) -> pd.DataFrame:
+    separate: bool = False,
+    add_src_file_name_column: bool = True,
+) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
     """
-    Read data files from a directory and append a new column with the source file name.
+    Reads data files from a directory, concatenates them into a DataFrame, or returns a dict of DataFrames.
 
-    Parameters
-    ----------
-    directory_path : str
-        Path to the directory containing data files.
-    source_column_name : str, optional
-        Name of the column to append with the source file name. Default is 'source_file'.
-    file_types : list, optional
-        List of file extensions to consider. Default is ['.csv', '.tsv'].
-    delimiter_map : dict, optional
-        Dictionary mapping file extensions to delimiters.
-    encoding : str, optional
-        File encoding. Default is 'utf-8'.
-    skip_files : list, optional
-        List of filenames or patterns to skip.
-    usecols : list, optional
-        List of columns to read.
-    dtype : dict, optional
-        Dictionary specifying data types for columns.
-    on_error : str, optional
-        Behavior on encountering an error. Can be 'skip', 'raise', or 'warn'. Default is 'warn'.
-    custom_readers : dict, optional
-        Dictionary mapping file extensions to custom reading functions.
+    Parameters:
+        directory_path (str): Path to the directory containing the data files.
+        src_col_name (str, optional): Name for the column indicating the source file. Defaults to 'src_file_name'.
+        file_types (list, optional): List of file extensions to read. Defaults to ['.csv', '.tsv'].
+        delimiter_map (dict, optional): Map of file extensions to their delimiters.
+        Defaults to {'.csv': ',', '.tsv': '\t'}.
+        encoding (str, optional): Encoding for the files. Defaults to 'utf-8'.
+        skip_files (list, optional): Filenames or patterns to skip. Defaults to [].
+        usecols (list, optional): Columns to read. None means all columns. Defaults to None.
+        dtype (dict, optional): Column data types. Defaults to {}.
+        on_error (str, optional): Error handling ('skip', 'raise', 'warn'). Defaults to 'warn'.
+        custom_readers (dict, optional): Custom functions for reading files. Defaults to {}.
+        separate (bool, optional): Return separate DataFrames for each file. Defaults to False.
+        add_src_file_name_column (bool, optional): Add a column with the source file name. Defaults to True.
 
-    Returns
-    -------
-    pd.DataFrame
-        Concatenated DataFrame of all the read files or None if no valid files were found.
+    Returns:
+        Union[pd.DataFrame, Dict[str, pd.DataFrame]]: A single DataFrame or a dictionary of DataFrames.
+
+    The function scans the specified directory for files matching the given extensions, reads them according to the
+    specified parameters, and combines them into a single DataFrame unless 'separate' is True, in which case it returns
+    a dictionary where each key is a file name and its value is the corresponding DataFrame.
+    If 'add_src_file_name_column' is True, each DataFrame will include a column with the source file name.
+    Errors during file reading are handled as specified by 'on_error'.
     """
 
-    if delimiter_map is None:
-        delimiter_map = {".csv": ",", ".tsv": "\t"}
-
-    data_files = [f for f in os.listdir(directory_path) if any(f.endswith(ft) for ft in file_types)]
+    data_files = [
+        f
+        for f in os.listdir(directory_path)
+        if any(f.endswith(ft) for ft in file_types) and not any(fnmatch.fnmatch(f, pattern) for pattern in skip_files)
+    ]
 
     if not data_files:
         logging.warning(f"No matching files found in directory: {directory_path}")
-        return pd.DataFrame()
+        return {} if separate else pd.DataFrame()
 
-    dfs = []
+    dfs = {} if separate else []
 
     for data_file in data_files:
-        # Skip files if they match any pattern in skip_files
-        if any(fnmatch.fnmatch(data_file, pattern) for pattern in skip_files):
-            continue
-
         try:
             filepath = os.path.join(directory_path, data_file)
             file_ext = os.path.splitext(data_file)[-1]
+            file_name = os.path.splitext(data_file)[0]
 
-            # Use custom reader if available for the file extension
-            if custom_readers and file_ext in custom_readers:
+            if file_ext in custom_readers:
                 df = custom_readers[file_ext](filepath)
             else:
                 df = pd.read_csv(
@@ -293,18 +284,27 @@ def read_data_files(
                     dtype=dtype,
                 )
 
-            df[source_column_name] = data_file
-            dfs.append(df)
-            logging.info(f"Successfully processed {data_file}")
+            if not df.empty:
+                if separate:
+                    dfs[file_name] = df  # type: ignore
+                else:
+                    if add_src_file_name_column:
+                        df[src_col_name] = data_file
+                    dfs.append(df)  # type: ignore
+            else:
+                logging.warning(f"Empty DataFrame loaded from {data_file}")
 
         except Exception as e:
             logging.error(f"Error processing {data_file}: {e}")
             if on_error == "raise":
                 raise
             elif on_error == "warn":
-                logging.warning(f"Skipped {data_file} due to error: {e}")
+                continue  # Proceed with the next file
 
-    return pd.concat(dfs, ignore_index=True) if dfs else pd.DataFrame()
+    if separate:
+        return dfs  # type: ignore
+    else:
+        return pd.concat(dfs, ignore_index=True)
 
 
 def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
@@ -353,25 +353,35 @@ def table(
     Args:
         df (pd.DataFrame): Dataframe of interest.
         columns (Union[str, List[str]], optional): List of columns to visualize. If None, no visualization is performed.
-            If 'all', visualize all columns. If a single string is passed, visualize that single column. Defaults to None.
-        n_cols (int, optional): Number of columns in the grid for visualizing the columns. If set to 0, each column will be displayed in a separate plot. Defaults to 3.
+            If 'all', visualize all columns.
+            If a single string is passed, visualize that single column. Defaults to None.
+        n_cols (int, optional): Number of columns in the grid for visualizing the columns.
+        If set to 0, each column will be displayed in a separate plot. Defaults to 3.
         descriptive (bool, optional): If True, print descriptive statistics. Defaults to False.
         transpose_des (bool, optional): If True, transpose the descriptive statistics table. Defaults to True.
         corr (bool, optional): If True, print the correlation matrix. Defaults to False.
-        sns_corr (bool, optional): If True, display a correlation matrix heatmap using Seaborn. If False, display the correlation matrix as a table. Defaults to False.
-        max_list_len (int, optional): Maximum length of a list to be displayed in the "unique values" column. If the number of unique values in a column exceeds this threshold, only the count of unique values is shown. Defaults to 10.
-        max_concat_list_len (int, optional): Maximum length of a concatenated list to be displayed in the "unique values" column. If the concatenated unique values string exceeds this threshold, it will be truncated and ellipses will be added. Defaults to 70.
+        sns_corr (bool, optional): If True, display a correlation matrix heatmap using Seaborn.
+        If False, display the correlation matrix as a table. Defaults to False.
+        max_list_len (int, optional): Maximum length of a list to be displayed in the "unique values" column.
+        If the number of unique values in a column exceeds this threshold, only the count of unique values is
+        shown. Defaults to 10.
+        max_concat_list_len (int, optional): Maximum length of a concatenated list to be displayed in the
+        "unique values" column. If the concatenated unique values string exceeds this threshold, it will be truncated
+        and ellipses will be added. Defaults to 70.
         seed (int, optional): Seed value for reproducible sampling. Defaults to 42.
 
     Returns:
         None
 
     Displays:
-        - A table containing basic statistics of the dataframe, including the number of records, column names, data types,
-          the number of unique values or the count of unique values if it exceeds the threshold, the number of missing values,
+        - A table containing basic statistics of the dataframe, including the number of records, column names, data
+        types,
+          the number of unique values or the count of unique values if it exceeds the threshold, the number of missing
+          values,
           and the count of zeros or falses in each column.
         - A sample of the dataframe, with reproducible random sampling based on the seed value.
-        - Descriptive statistics such as count, mean, standard deviation, minimum, quartiles, and maximum values for each numeric column in the dataframe (if `descriptive` is True).
+        - Descriptive statistics such as count, mean, standard deviation, minimum, quartiles, and maximum values for
+        each numeric column in the dataframe (if `descriptive` is True).
         - A correlation matrix or a correlation matrix heatmap using Seaborn (if `corr` or `sns_corr` is True).
         - Histograms for numeric columns and bar plots for categorical columns (if `columns` is not None).
 
@@ -379,7 +389,8 @@ def table(
         - The function utilizes the `tabulate` library for creating the table, and requires the `display` and `Markdown`
           modules from the IPython library for displaying the table and sample data in a Jupyter Notebook.
         - If `n_cols` is greater than 10, a warning will be issued and no plots will be created.
-        - Warnings may also be issued if specified columns do not exist in the dataframe, or if all numeric or categorical
+        - Warnings may also be issued if specified columns do not exist in the dataframe, or if all numeric or
+        categorical
           columns have only one unique value.
     """
 
@@ -409,7 +420,8 @@ def table(
             row.extend(
                 [
                     f"{col_transformed.isna().sum():_}",  # add the number of NAs in the column to the row
-                    f"{len(df) - np.count_nonzero(col_transformed):_}",  # add the number of zeros and falses in the column to the row
+                    f"{len(df) - np.count_nonzero(col_transformed):_}",  # add the number of zeros and falses in the
+                    # column to the row
                 ]
             )
         elif df[col].nunique() > max_list_len:
@@ -417,7 +429,8 @@ def table(
             row.extend(
                 [
                     f"{df[col].isna().sum():_}",  # add the number of NAs in the column to the row
-                    f"{len(df) - np.count_nonzero(df[col]):_}",  # add the number of zeros and falses in the column to the row
+                    f"{len(df) - np.count_nonzero(df[col]):_}",  # add the number of zeros and falses in the column to
+                    # the row
                 ]
             )
         else:
@@ -429,14 +442,16 @@ def table(
                 map(str, unique_values)
             )  # concatenate the unique values into a string
             if len(unique_values_concat) > max_concat_list_len:
-                unique_values_concat = f"{unique_values_concat[:max_concat_list_len-3]}.."  # add three dots if the concatenated values exceed the threshold
+                unique_values_concat = f"{unique_values_concat[:max_concat_list_len-3]}.."  # add three dots if the
+                # concatenated values exceed the threshold
             # concatenate nunique to unique_values_concat
             unique_values_concat = f"{df[col].nunique()}/{unique_values_concat}"
             row.append(unique_values_concat)  # add the list of unique values to the row
             row.extend(
                 [
                     f"{df[col].isna().sum():_}",  # add the number of NAs in the column to the row
-                    f"{len(df) - np.count_nonzero(df[col]):_}",  # add the number of zeros and falses in the column to the row
+                    f"{len(df) - np.count_nonzero(df[col]):_}",  # add the number of zeros and falses in the column to
+                    # the row
                 ]
             )
         # Append the row to the rows list
@@ -474,7 +489,8 @@ def table(
         else:
             display(df_des)
 
-    # Print information about the DataFrame including the index dtype and column dtypes, non-null values and memory usage.
+    # Print information about the DataFrame including the index dtype and column dtypes, non-null values and memory
+    # usage.
     # display(Markdown("**Dataframe info:**"))
     # display(df.info(verbose=True))
     """
@@ -492,21 +508,21 @@ def table(
     if sns_corr:
         display(Markdown("**Correlation matrix:**"))
         # corr = df.corr()
-        # from matplotlib import MatplotlibDeprecationWarning
+        from matplotlib import MatplotlibDeprecationWarning
 
-        # warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
+        warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
         plt.figure(figsize=(10, 8))
         plt.grid(False)  # Turn off grid lines
         sns.heatmap(df.corr(), annot=True, fmt=".2f", cmap="magma")
         plt.show()
-        # warnings.filterwarnings("default", category=MatplotlibDeprecationWarning)
+        warnings.filterwarnings("default", category=MatplotlibDeprecationWarning)
 
     """
     ========================================
     Visualize columns if columns is not None
     ========================================
     """
-    if viz_cols is None:
+    if viz_cols is []:
         return
     # If columns is 'all', plot all columns
     if viz_cols == "all":
@@ -523,7 +539,7 @@ def table(
 
         viz_cols = [col for col in viz_cols if col in df.columns]
         if not viz_cols:
-            warnings.warn("No columns to plot")
+            # warnings.warn("No columns to plot")
             return
         numeric_cols = [col for col in viz_cols if df[col].dtype in [np.int64, np.float64]]
         categorical_cols = [col for col in viz_cols if df[col].dtype in ["object", "category"]]
@@ -679,12 +695,14 @@ def wavg_grouped(
     df (pd.DataFrame): input DataFrame.
     values (str): column in df which we want to find average of.
     weights (str): column in df which represents weights.
-    group (Union[str, list]): column name(s) to group by. Can be a string (single column) or list of strings (multiple columns).
+    group (Union[str, list]): column name(s) to group by. Can be a string (single column) or list of strings
+    (multiple columns).
     merge (bool): if True, merges the input DataFrame with the resulting DataFrame.
     nan_for_zero_weights (bool): if True, returns NaN for groups where the sum of weights is zero.
 
     Returns:
-    pd.DataFrame: DataFrame with the weighted average of 'values' column with respect to 'weights' column for each group.
+    pd.DataFrame: DataFrame with the weighted average of 'values' column with respect to 'weights' column for each
+    group.
     """
     # if group is a string, convert it to list
     if isinstance(group, str):
@@ -707,15 +725,18 @@ def wavg_grouped(
     if not zero_weight_groups.empty:
         if nan_for_zero_weights:
             weighted_averages = valid_df.groupby(group).apply(
-                lambda x: np.average(x[values], weights=x[weights]) if x[weights].sum() != 0 else np.nan
+                lambda x: np.average(x[values], weights=x[weights]) if x[weights].sum() != 0 else np.nan  # type: ignore
             )
         else:
             zero_weight_group_values = zero_weight_groups[group].drop_duplicates().values.tolist()
             raise ValueError(
-                f"The following group(s) have sum of weights equal to zero: {zero_weight_group_values}. Cannot perform division by zero."
+                "The following group(s) have sum of weights equal to zero: "
+                + f"{zero_weight_group_values}. Cannot perform division by zero."
             )
     else:
-        weighted_averages = valid_df.groupby(group).apply(lambda x: np.average(x[values], weights=x[weights]))
+        weighted_averages = valid_df.groupby(group).apply(
+            lambda x: np.average(x[values], weights=x[weights])  # type: ignore
+        )
 
     weighted_averages = weighted_averages.reset_index().rename(columns={0: "wavg"})
 
@@ -770,7 +791,8 @@ def create_store_col_order(file_path: str) -> list:
     """Creates a column order mapping based on an Excel table, saves it to a file, and returns a list of column names.
 
     If the mapping file exists at the specified file path, the function loads the mapping file and returns a list of
-    column names in the order specified in the file. If the mapping file does not exist, the function reads the clipboard
+    column names in the order specified in the file. If the mapping file does not exist, the function reads the
+    clipboard
     to create the mapping dataframe, saves it to file, and returns a list of column names in the order specified in the
     clipboard data.
 
@@ -812,12 +834,13 @@ def print_list(obj):
         print(item)
 
 
-def mkpro(project_path: Path = None, create_project_dir: bool = False) -> tuple:
+def mkpro(project_path: Path = None, create_project_dir: bool = False) -> tuple:  # type: ignore
     """
     Create the necessary directories for a project.
 
     Parameters:
-    project_path (Path): The full path to the project directory. If not provided, it's assumed to be the parent of the 'notebook' directory.
+    project_path (Path): The full path to the project directory. If not provided, it's assumed to be the parent of the
+    'notebook' directory.
     create_project_dir (bool): If True, the project directory will be created if it does not exist. Default is False.
 
     Returns:
@@ -868,7 +891,8 @@ def fpath(path, new_file="", new_root="ddir", root_idx_value="data"):
 
     Parameters:
     path (str): The original file path that needs to be transformed.
-    new_file (str): The new file to be added at the end of the path. Default is an empty string, which means no file is added.
+    new_file (str): The new file to be added at the end of the path. Default is an empty string, which means no file is
+    added.
     new_root (str): The new root directory name, default is 'ddir'.
     root_idx_value (str): The identifier (value) of the root directory in the original path, default is 'data'.
 
