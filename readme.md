@@ -9,40 +9,43 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
 - [1. How to add a submodule to an existing repo](#1-how-to-add-a-submodule-to-an-existing-repo)
 - [2. How to clone a repo that already has submodules](#2-how-to-clone-a-repo-that-already-has-submodules)
 - [3. Update submodule to latest commit on remote](#3-update-submodule-to-latest-commit-on-remote)
-- [4. Remove submodule from parent repo (and remote)](#4-remove-submodule-from-parent-repo-and-remote)
-- [5. How to use the module in your code](#5-how-to-use-the-module-in-your-code)
-  - [5.1. Importing eda\_utils in Python Scripts](#51-importing-eda_utils-in-python-scripts)
-  - [5.2. Importing eda\_utils in Python Scripts](#52-importing-eda_utils-in-python-scripts)
-- [6. General considerations](#6-general-considerations)
-- [7. Creating a Conda environment for the submodule](#7-creating-a-conda-environment-for-the-submodule)
-- [8. Create requirement for Conda environment](#8-create-requirement-for-conda-environment)
-- [9. Using virtual environments](#9-using-virtual-environments)
-  - [9.1. Creating a virtual environment](#91-creating-a-virtual-environment)
-  - [9.2. Activating a virtual environment](#92-activating-a-virtual-environment)
-  - [9.3. Installing packages](#93-installing-packages)
-  - [9.4. Deactivating a virtual environment](#94-deactivating-a-virtual-environment)
-  - [9.5. Deleting a virtual environment](#95-deleting-a-virtual-environment)
-- [10. Creating a requirements.txt file](#10-creating-a-requirementstxt-file)
-  - [10.1. Saving dependencies to requirements.txt](#101-saving-dependencies-to-requirementstxt)
-  - [10.2. Installing dependencies from requirements.txt](#102-installing-dependencies-from-requirementstxt)
-- [11. Misc](#11-misc)
-  - [11.1. Ignore and untrack files or directories](#111-ignore-and-untrack-files-or-directories)
-  - [11.2. Handling .DS\_Store files](#112-handling-ds_store-files)
-- [12. References](#12-references)
+- [4. Setup Git to automatically pull submodules](#4-setup-git-to-automatically-pull-submodules)
+- [5. Remove submodule from parent repo (and remote)](#5-remove-submodule-from-parent-repo-and-remote)
+- [6. How to use the module in your code](#6-how-to-use-the-module-in-your-code)
+  - [6.1. Importing eda\_utils in Python Scripts](#61-importing-eda_utils-in-python-scripts)
+  - [6.2. Importing eda\_utils in Python Scripts](#62-importing-eda_utils-in-python-scripts)
+- [7. General considerations](#7-general-considerations)
+- [8. Creating a Conda environment for the submodule](#8-creating-a-conda-environment-for-the-submodule)
+- [9. Create requirement for Conda environment](#9-create-requirement-for-conda-environment)
+- [10. Using virtual environments](#10-using-virtual-environments)
+  - [10.1. Creating a virtual environment](#101-creating-a-virtual-environment)
+  - [10.2. Activating a virtual environment](#102-activating-a-virtual-environment)
+  - [10.3. Installing packages](#103-installing-packages)
+  - [10.4. Deactivating a virtual environment](#104-deactivating-a-virtual-environment)
+  - [10.5. Deleting a virtual environment](#105-deleting-a-virtual-environment)
+- [11. Creating a requirements.txt file](#11-creating-a-requirementstxt-file)
+  - [11.1. Saving dependencies to requirements.txt](#111-saving-dependencies-to-requirementstxt)
+  - [11.2. Installing dependencies from requirements.txt](#112-installing-dependencies-from-requirementstxt)
+- [12. Misc](#12-misc)
+  - [12.1. Ignore and untrack files or directories](#121-ignore-and-untrack-files-or-directories)
+  - [12.2. Handling .DS\_Store files](#122-handling-ds_store-files)
+- [13. References](#13-references)
 
 ## 1. How to add a submodule to an existing repo
 
 1. Add the submodule to an existing repo:
 
     ```shell
-    cd <parent_repo_path>
+    cd <parent_repo_dir>
+    git clone https://github.com/luiul/eda_utils.git
+    cd <submodule_dir>
     git submodule add https://github.com/luiul/eda_utils.git eda_utils
     ```
 
 2. Make sure that the submodule is tracking the `main`:
 
     ```shell
-    cd eda_utils
+    cd <submodule_dir>
     git checkout main
     ```
 
@@ -52,7 +55,6 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
     [submodule "eda_utils"]
     path = eda_utils
     url = https://github.com/luiul/eda_utils
-    ignore = all
     update = merge
     branch = main
     ```
@@ -88,7 +90,7 @@ To update the contents of a submodule, you should follow these steps:
 1. Change to the submodule directory:
 
     ```shell
-    cd <parent_repo_path>
+    cd <submodule_dir>
     ```
 
 2. Checkout the desired branch:
@@ -112,7 +114,7 @@ To update the contents of a submodule, you should follow these steps:
 5. Add the updated submodule changes:
 
     ```shell
-    git add <parent_repo_path>
+    git add <parent_repo_dir>
     ```
 
 6. Commit the changes:
@@ -127,32 +129,64 @@ To update the contents of a submodule, you should follow these steps:
     git push origin main
     ```
 
-## 4. Remove submodule from parent repo (and remote)
+## 4. Setup Git to automatically pull submodules
+
+When you clone a repository that contains submodules, the submodules' directories will be present, but they will initially be empty. To populate the submodules, you need to initialize them and update their contents. This can be done using the following command:
+
+```shell
+git submodule update --init --recursive
+```
+
+This command initializes your local configuration file for each submodule, updates each submodule to the commit specified by the superproject, and recursively initializes and updates each submodule within.
+
+To automatically update all submodules when pulling in the parent repository, you can configure Git to do so with the following command:
+
+```shell
+git config --global submodule.recurse true
+```
+
+This command configures Git globally to automatically update submodules whenever you pull changes in the superproject. If you prefer to enable this behavior for a specific repository only, omit the `--global` flag and run the command within the repository:
+
+```shell
+git config submodule.recurse true
+```
+
+This setting tells Git to also pull changes for all submodules whenever you pull in the parent repository. If, however, you need to manually update the submodules to their latest commits available on their respective remote branches, use the following command:
+
+```shell
+git submodule update --recursive --remote
+```
+
+This command fetches the latest changes from the remote of each submodule and updates them to the latest commit found on their tracked branch, rather than the commit specified in the superproject.
+
+Remember, after updating submodules, especially to newer commits not specified in the superproject, you might need to commit these changes in the superproject to track the updated submodule commits.
+
+## 5. Remove submodule from parent repo (and remote)
 
 1. Delete the relevant section from the `.gitmodules` file.
 
 2. Deinitialize the submodule:
 
     ```shell
-    git submodule deinit -f <path_to_submodule>
+    git submodule deinit -f <submodule_dir>
     ```
 
 3. Remove the submodule from the git index and the local filesystem:
 
     ```shell
-    git rm -f <path_to_submodule>
+    git rm -f <submodule_dir>
     ```
 
     If the above command results in an error, you may need to use the `--cached` option:
 
     ```shell
-    git rm --cached <path_to_submodule>
+    git rm --cached <submodule_dir>
     ```
 
 4. Remove the actual submodule files:
 
     ```shell
-    rm -rf .git/modules/<path_to_submodule>
+    rm -rf .git/modules/<submodule_dir>
     ```
 
 5. Commit the changes:
@@ -167,7 +201,7 @@ To update the contents of a submodule, you should follow these steps:
     git push origin main
     ```
 
-## 5. How to use the module in your code
+## 6. How to use the module in your code
 
 The submodule will appear as a subfolder structure in the parent repo. From this point all functions that exist in the `eda_utils/eda_module` folders can be imported and used in the main repo's code. For example:
 
@@ -177,7 +211,7 @@ from eda_utils.eda_module import eda_function
 
 The submodule can be utilized both in Jupyter notebooks and standalone Python scripts. If the submodule is not in the same directory as the main repo, you will need to add the submodule's parent directory to the system path before importing the submodule. See the following sections for more details.
 
-### 5.1. Importing eda_utils in Python Scripts
+### 6.1. Importing eda_utils in Python Scripts
 
 To import `eda_utils` in a Jupyter notebook when the module resides in the parent directory, you can use the following code snippets:
 
@@ -231,7 +265,7 @@ To import `eda_utils` in a Jupyter notebook when the module resides in the paren
     from eda_utils.eda_module import *
     ```
 
-### 5.2. Importing eda_utils in Python Scripts
+### 6.2. Importing eda_utils in Python Scripts
 
 If you're working within a Python script, you can import `eda_utils` as follows:
 
@@ -256,14 +290,14 @@ This script determines the directory of the current script and its parent direct
 
 Please note: These solutions are quick workarounds, and they might not work in all situations. For larger and more complex projects, consider following Python packaging best practices or using a workaround with the `PYTHONPATH` environment variable.
 
-## 6. General considerations
+## 7. General considerations
 
 1. When pulling changes from remote in the **parent** repo, remember to always execute a `git submodule update --remote` command after `git pull`. `git pull` will only pull changes for the parent repo, you want to also update any changes from the submodule repo.
 2. Before commiting changes from a local branch make sure you execute a `git submodule update --remote` command. This will make sure that your current commit will point to the most recent commit of the submodule.
 3. To keep things simple, any changes to the `bi-isa-utils` code should be done in the original repo. You can then run a `git submodule update --remote` in any of the dependent repos to pull the changes.
 4. Keep in mind that the submodule has its own `requirements.txt`. This means that, whenever you're creating a virtual environment you need to also `pip install -r eda_utils/requirements.txt`. This will install all the required packages for the submodule. If you're using Conda, you can use the following method to create a Conda environment from the submodule's `requirements.txt` file.
 
-## 7. Creating a Conda environment for the submodule
+## 8. Creating a Conda environment for the submodule
 
 The submodule has its own `requirements.txt` file. This means that, whenever you're creating a virtual environment, you also need to install the required packages for the submodule.
 
@@ -304,7 +338,7 @@ With an `environment.yml` file, you can create the environment and install all n
 conda env create -f environment.yml
 ```
 
-## 8. Create requirement for Conda environment
+## 9. Create requirement for Conda environment
 
 1. Activate the desired Conda environment
 
@@ -332,11 +366,11 @@ Keep in mind that the `requirements.txt` file generated by Conda might not be di
     pip freeze > requirements.txt
     ```
 
-## 9. Using virtual environments
+## 10. Using virtual environments
 
 Working in a virtual environment is a best practice for Python development. This allows you to isolate your project and avoid conflicts between dependencies for different projects. Here's a quick guide on how you can create and use virtual environments in Python:
 
-### 9.1. Creating a virtual environment
+### 10.1. Creating a virtual environment
 
 For Python 3, you can create a virtual environment using the `venv` module:
 
@@ -346,7 +380,7 @@ python3 -m venv /path/to/new/virtual/environment
 
 After running this command, a directory will be created at `/path/to/new/virtual/environment` (you should replace this with the desired directory) if it doesn’t already exist. The directory will contain a Python installation; a copy of the `python` binary (or `python.exe` on Windows); and command scripts (`activate`, `deactivate`) that can be used to start and stop the environment.
 
-### 9.2. Activating a virtual environment
+### 10.2. Activating a virtual environment
 
 You can activate the virtual environment using the `activate` script, which is located in the `bin` directory of your environment folder.
 
@@ -356,7 +390,7 @@ source /path/to/new/virtual/environment/bin/activate
 
 When the virtual environment is activated, your shell prompt will be prefixed with the name of your environment.
 
-### 9.3. Installing packages
+### 10.3. Installing packages
 
 Once your virtual environment is activated, you can install packages using `pip`. The packages will be installed in your virtual environment, isolated from your global Python installation.
 
@@ -366,7 +400,7 @@ For example, to install the requirements for your `eda_utils` submodule, you can
 pip install -r eda_utils/requirements.txt
 ```
 
-### 9.4. Deactivating a virtual environment
+### 10.4. Deactivating a virtual environment
 
 Once you are done working in the virtual environment, you can deactivate it:
 
@@ -378,7 +412,7 @@ This will put you back to your system’s default Python interpreter with all it
 
 To reactivate the virtual environment, just use the activation command again.
 
-### 9.5. Deleting a virtual environment
+### 10.5. Deleting a virtual environment
 
 If you want to delete a virtual environment, just delete its folder. In this case, it would be:
 
@@ -388,11 +422,11 @@ rm -rf /path/to/new/virtual/environment
 
 Please note: this will delete all the contents in the virtual environment, including the installed packages.
 
-## 10. Creating a requirements.txt file
+## 11. Creating a requirements.txt file
 
 A `requirements.txt` file is a file that contains a list of items that are needed to run the project. In Python, this is often a list of packages and their respective versions. Here's how you can create a `requirements.txt` file with pip:
 
-### 10.1. Saving dependencies to requirements.txt
+### 11.1. Saving dependencies to requirements.txt
 
 After setting up and activating your virtual environment, and installing all the required packages using pip (as discussed in section 10), you can save these dependencies into a `requirements.txt` file using this command:
 
@@ -404,7 +438,7 @@ The `pip freeze` command outputs all the library packages that you installed in 
 
 This will create a `requirements.txt` file in your project directory, listing all of the packages in the current environment, and their respective versions.
 
-### 10.2. Installing dependencies from requirements.txt
+### 11.2. Installing dependencies from requirements.txt
 
 Later, if you or someone else needs to recreate the same environment, it's as easy as using the following command:
 
@@ -416,11 +450,11 @@ This command will look at the `requirements.txt` file in your project directory 
 
 Note: It's a good practice to use virtual environments when working with Python projects. This ensures that the packages required for this project won't interfere with packages for your other projects or your system Python installation.
 
-## 11. Misc
+## 12. Misc
 
 This section provides some useful commands for handling files and directories in a Git repository.
 
-### 11.1. Ignore and untrack files or directories
+### 12.1. Ignore and untrack files or directories
 
 Even if a file or directory has been added to your .gitignore, Git might still track it if it was tracked previously. To untrack it, you will need to:
 
@@ -445,7 +479,7 @@ Even if a file or directory has been added to your .gitignore, Git might still t
 git commit -m "Untrack files now in .gitignore"
 ```
 
-### 11.2. Handling .DS_Store files
+### 12.2. Handling .DS_Store files
 
 After updating your .gitignore file, you will need to remove any previously tracked `.DS_Store` files from your repository:
 
@@ -461,6 +495,6 @@ Finally, commit the changes:
 git commit -m "Ignore and untrack .DS_Store files"
 ```
 
-## 12. References
+## 13. References
 
 - [Pathlib tutorial](https://github.com/Sven-Bo/pathlib-quickstart-guide/blob/master/Pathlib_Tutorial.ipynb)
