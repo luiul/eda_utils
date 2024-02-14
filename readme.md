@@ -38,8 +38,7 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
     ```shell
     cd <parent_repo_dir>
     git clone https://github.com/luiul/eda_utils.git
-    cd <submodule_dir>
-    git submodule add https://github.com/luiul/eda_utils.git eda_utils
+    git submodule add https://github.com/luiul/eda_utils.git
     ```
 
 2. Make sure that the submodule is tracking the `main`:
@@ -54,8 +53,8 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
     ```shell
     [submodule "eda_utils"]
     path = eda_utils
-    url = https://github.com/luiul/eda_utils
-    update = merge
+    url = https://github.com/luiul/eda_utils.git
+    update = rebase
     branch = main
     ```
 
@@ -63,25 +62,61 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
 
 ## 2. How to clone a repo that already has submodules
 
-1. Clone the parent repo
+1. Clone the Parent Repository
+
+   Start by cloning the parent repository. Replace `<parent_repo_url>` with the URL of the repository you wish to clone.
 
     ```shell
     git clone <parent_repo_url>
     ```
 
-2. At this stage, you will notice that the submodule appears as a folder in the cloned repo but it doesn't have any code. You need to update it from its remote:
+2. Initialize Submodules
+
+   After cloning, submodules will appear as empty directories. You need to initialize them to prepare for updating. Navigate to the cloned repository's directory and run:
 
     ```shell
     cd <parent_repo_path>
     git submodule init
+    ```
+
+3. Update Submodules
+
+   Next, fetch the content for each submodule based on the commits specified in the superproject.
+
+    ```shell
     git submodule update
     ```
 
-3. Make sure that the submodule is tracking the `main` (or `main`) branch
+4. Simplified Initialization and Update
+
+   Alternatively, you can initialize and update submodules in one step, including updating nested submodules recursively:
 
     ```shell
-    cd eda_utils
+    git submodule update --init --recursive
+    ```
+
+5. (Optional) Update Submodules to Latest Commits
+
+   If you wish to update all submodules to the latest commits on their respective remote branches, execute:
+
+    ```shell
+    git submodule update --recursive --remote
+    ```
+
+   This step is optional and fetches the latest changes from each submodule's remote.
+
+6. Ensure Submodule Is Tracking the Correct Branch
+
+   For any submodule, you might want to ensure it's tracking a specific branch (e.g., `main`). Navigate to the submodule's directory and check out the desired branch:
+
+    ```shell
+    cd <submodule_name>
     git checkout main
+    ```
+
+   Replace `<submodule_name>` with the actual name of your submodule.
+
+**Note:** Steps 5 and 6 are optional. Step 5 updates submodules to their latest remote commits, which might not always be desired, depending on your project's requirements. Step 6 is necessary if you need the submodule to track a specific branch that differs from the one specified in the superproject.
 
 ## 3. Update submodule to latest commit on remote
 
