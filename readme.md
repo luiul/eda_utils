@@ -120,49 +120,47 @@ Collection of EDA functions for exploring, understanding, and visualizing data (
 
 ## 3. Update submodule to latest commit on remote
 
-To update the contents of a submodule, you should follow these steps:
+To update the contents of a submodule to the latest commit on its remote repository, including the option to update recursively, follow these steps:
 
-1. Change to the submodule directory:
+1. Change to the Submodule Directory:
 
     ```shell
     cd <submodule_dir>
     ```
 
-2. Checkout the desired branch:
+2. Checkout the Desired Branch and ensure you're on the desired branch, typically `main`:
 
     ```shell
     git checkout main
     ```
 
-3. Pull from the remote:
+3. Pull from the Remote:
 
     ```shell
     git pull origin main
     ```
 
-4. Change back to your project root:
+4. (Optional) Recursively Update Submodules. If your submodule contains nested submodules and you wish to update all of them to their latest commits, use the following command from the submodule directory:
+
+    ```shell
+    git submodule update --recursive --remote
+    ```
+
+5. Change Back to Your Project Root, add and Commit the Updated Submodule Changes:
 
     ```shell
     cd ..
+    git add <submodule_dir>
+    git commit -m "Updated submodule to the latest commit"
     ```
 
-5. Add the updated submodule changes:
-
-    ```shell
-    git add <parent_repo_dir>
-    ```
-
-6. Commit the changes:
-
-    ```shell
-    git commit -m "Updated submodule"
-    ```
-
-7. Push the changes to your remote repository:
+6. Push the Changes:
 
     ```shell
     git push origin main
     ```
+
+**Note:** The optional step provides a way to ensure that all nested submodules within your submodule are also updated to their latest commits, offering a comprehensive update across your project's dependencies. This approach simplifies managing complex projects with multiple nested submodules.
 
 ## 4. Setup Git to automatically pull submodules
 
