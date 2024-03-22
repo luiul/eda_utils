@@ -10,6 +10,7 @@
 
 # Standard libraries
 import fnmatch
+import inspect
 
 # Logging library
 import logging
@@ -18,6 +19,11 @@ import math
 # Built-in libraries
 import os
 import warnings  # For handling warnings
+
+# Logging and wrapping standard output to a file
+from contextlib import redirect_stdout
+from datetime import datetime
+from functools import wraps
 from pathlib import Path
 
 # Unused libraries
@@ -57,6 +63,242 @@ sns.set(rc={"figure.figsize": (12, 8)})
 # 2. For specific column formatting in a DataFrame:
 #    df.head().style.format({"col1": "{:,.0f}", "col2": "{:,.0f}"})
 # More formatting options: https://pbpython.com/styling-pandas.html
+
+
+def compile_daily_reports(date_str=None, report_dir='report', output_dir=None):
+    """
+    Compiles and collates all reports from a given day into a structured Markdown document.
+
+    Parameters:
+    - date_str (str): The date in 'YYYY-MM-DD' format to compile reports for. Defaults to today's date.
+    - report_dir (str): Directory path where individual report files are stored.
+    - output_dir (str): Directory path where the compiled report should be saved. If None, uses report_dir.
+
+    Returns:
+    - The filename of the compiled Markdown report.
+    """
+    if date_str is None:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+    if output_dir is None:
+        output_dir = report_dir
+
+    # Ensure the output directory exists
+    os.makedirs(output_dir, exist_ok=True)
+
+    compiled_report_filename = os.path.join(output_dir, f"{date_str}_compiled_report.md")
+    with open(compiled_report_filename, 'w') as compiled_file:
+        # Write a header for the compiled report
+        compiled_file.write(f"# Compiled Report for {date_str}\n\n")
+
+        # Loop through files in the report directory
+        for filename in os.listdir(report_dir):
+            if date_str in filename and filename.endswith('.txt'):
+                # Construct a section header for this report based on the new file naming convention
+                parts = filename.split('_')
+                if len(parts) >= 4:  # Ensure the filename matches the expected format
+                    function_name = parts[0]
+                    caller_name = parts[-3]
+                    source_name = parts[-2]
+                    report_title = f"{function_name} (Caller: {caller_name}, Source: {source_name})"
+                else:
+                    report_title = os.path.splitext(filename)[0]
+
+                compiled_file.write(f"## {report_title}\n\n")
+
+                # Read the individual report and add its content
+                with open(os.path.join(report_dir, filename), 'r') as report_file:
+                    report_content = report_file.read()
+                    compiled_file.write(f"```\n{report_content}\n```\n")
+
+    return compiled_report_filename
+
+
+def log_df(df, comment=None, log_dir='report') -> pd.DataFrame:
+    """
+    Logs a DataFrame and an optional comment to a file, including metadata similar to the log_to_file decorator.
+
+    Parameters:
+    - df (pandas.DataFrame): The DataFrame to log.
+    - comment (str, optional): An optional comment to include in the log.
+    - log_dir (str): Directory path where the log file should be saved.
+    """
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError("The first argument must be a pandas DataFrame.")
+
+    # Prepare metadata
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    caller_frame = inspect.stack()[1]
+    caller_file = caller_frame.filename
+    base_caller_file = os.path.splitext(os.path.basename(caller_file))[0]
+    func_name = "log_df"  # Since this is not a decorator, we manually specify the 'function' name
+
+    # Construct the file name using the format from the decorator
+    file_name = f"{timestamp}_{func_name}_{base_caller_file}.txt"
+    file_path = os.path.join(log_dir, file_name)
+
+    # Ensure the log directory exists
+    os.makedirs(log_dir, exist_ok=True)
+
+    # Log DataFrame and metadata to file
+    with open(file_path, 'w') as f:
+        f.write(f"Timestamp: {timestamp}\n")
+        f.write(f"Caller File: {caller_file}\n")
+        f.write(f"Function: {func_name}\n")
+        if comment:
+            f.write(f"Comment: {comment}\n")
+        f.write("DataFrame Output:\n")
+        f.write(df.to_string())  # Convert the DataFrame to a string representation for logging
+
+    print(f"DataFrame operation logged to: {file_path}")
+
+    return df
+
+
+def log_stdout(comment=None, log_dir='report'):
+    """
+    A decorator factory that allows logging of a function's output to a file, with optional comments.
+    Includes metadata about the call, such as the caller and source file names, function name, and execution timestamp.
+
+    Parameters:
+    - comment (str, optional): A comment to include in the log file for additional context.
+    """
+
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Prepare the directory and file name
+            os.makedirs(log_dir, exist_ok=True)
+
+            # Metadata collection
+            src_file = inspect.getfile(func)
+            try:
+                caller_frame = inspect.stack()[1]
+                caller_file = caller_frame.filename
+            except Exception as e:
+                caller_file = "unknown"
+                print(f"Could not determine caller's file: {e}")
+            timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+            file_name = (
+                f"{timestamp}_{func.__name__}_"
+                f"{os.path.splitext(os.path.basename(caller_file))[0]}_"
+                f"{os.path.splitext(os.path.basename(src_file))[0]}.txt"
+            )
+            file_path = os.path.join(log_dir, file_name)
+
+            # Redirect stdout to capture print statements and function output
+            with open(file_path, 'w') as f, redirect_stdout(f):
+                if comment:  # Include the comment if provided
+                    f.write(f"Comment: {comment}\n\n")
+                f.write(
+                    f"Timestamp: {timestamp}\n"
+                    f"Caller File: {caller_file}\n"
+                    f"Source File: {src_file}\n"
+                    f"Function: {func.__name__}\n\n"
+                )
+                f.write("# Output:\n")
+                try:
+                    result = func(*args, **kwargs)
+                except Exception as e:
+                    f.write(f"# Error: {e}\n")
+                    result = None
+
+            # Optionally, also print to stdout for immediate feedback
+            with open(file_path, 'r') as f:
+                content = f.read()
+                print(content)
+
+            return result
+
+        return wrapper
+
+    return decorator
+
+
+def sanitize_df(df, include_cols=None, exclude_cols=None, upper_case_cols=None, lower_case_cols=None, verbose=True):
+    """
+    Sanitizes all object type columns in a given Pandas DataFrame by applying various string transformations,
+    reports on aspects including non-ASCII characters (excluding missing values), missing values,
+    and performs case conversions using pd.NA for missing value representation.
+
+    Parameters:
+    - df (pd.DataFrame): A Pandas DataFrame with columns to be sanitized.
+    - include_cols (list, optional): List of column names to be specifically included in sanitization.
+    - exclude_cols (list, optional): List of column names to be excluded from sanitization.
+    - upper_case_cols (list, optional): List of column names to be converted to uppercase.
+    - lower_case_cols (list, optional): List of column names to be converted to lowercase.
+    - verbose (bool, optional): If True, prints detailed information about the sanitization process.
+
+    Returns:
+    - pd.DataFrame: A Pandas DataFrame with sanitized object type columns.
+    """
+    # Define replacements for non-ASCII characters
+    replacements = {'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss', 'ñ': 'n'}
+
+    # Initialize optional parameters as empty lists if None
+    include_cols = include_cols or []
+    exclude_cols = exclude_cols or []
+    upper_case_cols = upper_case_cols or []
+    lower_case_cols = lower_case_cols or []
+
+    if verbose:
+        # Report missing values
+        # print("> Missing Values Report:")
+        # missing_values = df.drop(columns=exclude_cols).isnull().sum()
+        # missing_values = missing_values[missing_values > 0]
+        # if not missing_values.empty:
+        #     print(missing_values)
+        # else:
+        #     print("No missing values found in included columns.")
+        # print("\n")
+
+        # Report non-ASCII characters
+        print("Non-ASCII Characters Overview:")
+        for column in df.select_dtypes(include=['object']).columns:
+            if column in exclude_cols:
+                continue  # Skip columns in exclude_cols
+            # remove NA records from df[column] and check for non-ASCII characters
+            non_ascii_mask = df[column].notna() & (
+                df[column] != df[column].str.encode('ascii', 'ignore').str.decode('ascii')
+            )
+
+            if non_ascii_mask.any():
+                non_ascii_values = df.loc[non_ascii_mask, column]
+                unique_non_ascii = non_ascii_values.unique()
+                print(
+                    f"Column: '{column}' has {len(unique_non_ascii)} unique non-ASCII values "
+                    f"among {non_ascii_mask.sum()} occurrences."
+                )
+                # Print each unique non-ASCII value
+                for value in unique_non_ascii:
+                    print(f"    Non-ASCII value: {value}")
+
+    # Processing columns
+    for column in df.columns:
+        if column in exclude_cols or df[column].dtype != 'object':
+            continue
+
+        df[column] = df[column].fillna('')  # Handle NaN values by replacing them with an empty string temporarily
+
+        if column in upper_case_cols:
+            df[column] = df[column].str.upper()
+            if verbose:
+                print(f"Column '{column}' converted to uppercase.")
+        elif column in lower_case_cols:
+            df[column] = df[column].str.lower()
+            if verbose:
+                print(f"Column '{column}' converted to lowercase.")
+        else:
+            # Apply general sanitization without changing case
+            df[column] = df[column].str.strip()
+            for original, replacement in replacements.items():
+                df[column] = df[column].str.replace(original, replacement, regex=False)
+
+        df[column] = df[column].replace('', np.nan)  # Revert temporary empty strings back to NaN
+
+        if verbose:
+            print(f"Sanitized column: {column}\n")
+
+    return df
 
 
 def col_types(df):
@@ -226,6 +468,7 @@ def read_data_files(
     custom_readers: dict = {},
     separate: bool = False,
     add_src_file_name_column: bool = True,
+    delete_empty_files: bool = False,
 ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
     """
     Reads data files from a directory, concatenates them into a DataFrame, or returns a dict of DataFrames.
@@ -293,6 +536,9 @@ def read_data_files(
                     dfs.append(df)  # type: ignore
             else:
                 logging.warning(f"Empty DataFrame loaded from {data_file}")
+                if delete_empty_files:
+                    os.remove(filepath)
+                    logging.info(f"Deleted empty file: {data_file}")
 
         except Exception as e:
             logging.error(f"Error processing {data_file}: {e}")
