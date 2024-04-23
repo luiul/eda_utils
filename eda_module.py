@@ -1106,13 +1106,13 @@ def mkpro(project_path: Path = None, create_project_dir: bool = False) -> tuple:
         return ()
 
     # Define the notebook and data directory path
-    ndir = project_path / "notebook"
+    # ndir = project_path / "notebook"
     ddir = project_path / "data"
     sdir = project_path / "sql"
 
     # Create directories
     for directory in ([project_path] if create_project_dir else []) + [
-        ndir,
+        # ndir,
         ddir,
         sdir,
     ]:
@@ -1123,7 +1123,7 @@ def mkpro(project_path: Path = None, create_project_dir: bool = False) -> tuple:
             logging.error(f"Error creating directory {directory}: {e}")
             return ()
 
-    return project_path, ndir, ddir, sdir
+    return project_path, ddir, sdir
 
 
 def fpath(path, new_file="", new_root="ddir", root_idx_value="data"):
