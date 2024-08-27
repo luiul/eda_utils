@@ -1,13 +1,3 @@
-# TODO: Expand read_data_files function to remove columns after src_file column
-# TODO: Change how the table fund displays list(-like) objects
-# TODO: Implement a form of col_types func in the table func
-# TODO: SQL connector function (with .env file and example.env in the repo)
-# TODO: Write outlier removal function (based on IQR, z-score, etc.)
-# TODO: Implement new mkpro function (allow user to create the directories if they don't exist).
-# TODO: Create sql directory in the mkpro func
-# TODO: Revise the WAVG funcs
-# TODO: add loging functionality to all functions
-
 # Standard libraries
 import fnmatch
 import inspect
@@ -25,13 +15,7 @@ from contextlib import redirect_stdout
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
-
-# Unused libraries
-# import datetime as dt
-# import glob
-# import re
-# from collections import OrderedDict
-from typing import Dict, List, Union
+from typing import Union
 
 import matplotlib.pyplot as plt
 
@@ -52,20 +36,10 @@ pd.set_option("display.max_columns", None)
 pd.options.display.float_format = "{:_.2f}".format
 
 # Seaborne settings
-sns.set(rc={"figure.figsize": (12, 8)})
-
-# Uncomment to ignore warnings
-# warnings.filterwarnings("ignore")
-
-# Notes:
-# 1. For formatting integers in a DataFrame:
-#    df.style.format(thousands=',')
-# 2. For specific column formatting in a DataFrame:
-#    df.head().style.format({"col1": "{:,.0f}", "col2": "{:,.0f}"})
-# More formatting options: https://pbpython.com/styling-pandas.html
+sns.set_theme(rc={"figure.figsize": (12, 8)})
 
 
-def compile_daily_reports(date_str=None, report_dir='report', output_dir=None):
+def compile_daily_reports(date_str=None, report_dir="report", output_dir=None):
     """
     Compiles and collates all reports from a given day into a structured Markdown document.
 
@@ -78,7 +52,7 @@ def compile_daily_reports(date_str=None, report_dir='report', output_dir=None):
     - The filename of the compiled Markdown report.
     """
     if date_str is None:
-        date_str = datetime.now().strftime('%Y-%m-%d')
+        date_str = datetime.now().strftime("%Y-%m-%d")
     if output_dir is None:
         output_dir = report_dir
 
@@ -86,15 +60,15 @@ def compile_daily_reports(date_str=None, report_dir='report', output_dir=None):
     os.makedirs(output_dir, exist_ok=True)
 
     compiled_report_filename = os.path.join(output_dir, f"{date_str}_compiled_report.md")
-    with open(compiled_report_filename, 'w') as compiled_file:
+    with open(compiled_report_filename, "w") as compiled_file:
         # Write a header for the compiled report
         compiled_file.write(f"# Compiled Report for {date_str}\n\n")
 
         # Loop through files in the report directory
         for filename in os.listdir(report_dir):
-            if date_str in filename and filename.endswith('.txt'):
+            if date_str in filename and filename.endswith(".txt"):
                 # Construct a section header for this report based on the new file naming convention
-                parts = filename.split('_')
+                parts = filename.split("_")
                 if len(parts) >= 4:  # Ensure the filename matches the expected format
                     function_name = parts[0]
                     caller_name = parts[-3]
@@ -106,14 +80,14 @@ def compile_daily_reports(date_str=None, report_dir='report', output_dir=None):
                 compiled_file.write(f"## {report_title}\n\n")
 
                 # Read the individual report and add its content
-                with open(os.path.join(report_dir, filename), 'r') as report_file:
+                with open(os.path.join(report_dir, filename), "r") as report_file:
                     report_content = report_file.read()
                     compiled_file.write(f"```\n{report_content}\n```\n")
 
     return compiled_report_filename
 
 
-def log_df(df, comment=None, log_dir='report') -> pd.DataFrame:
+def log_df(df, comment=None, log_dir="report") -> pd.DataFrame:
     """
     Logs a DataFrame and an optional comment to a file, including metadata similar to the log_to_file decorator.
 
@@ -126,7 +100,7 @@ def log_df(df, comment=None, log_dir='report') -> pd.DataFrame:
         raise ValueError("The first argument must be a pandas DataFrame.")
 
     # Prepare metadata
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     caller_frame = inspect.stack()[1]
     caller_file = caller_frame.filename
     base_caller_file = os.path.splitext(os.path.basename(caller_file))[0]
@@ -140,7 +114,7 @@ def log_df(df, comment=None, log_dir='report') -> pd.DataFrame:
     os.makedirs(log_dir, exist_ok=True)
 
     # Log DataFrame and metadata to file
-    with open(file_path, 'w') as f:
+    with open(file_path, "w") as f:
         f.write(f"Timestamp: {timestamp}\n")
         f.write(f"Caller File: {caller_file}\n")
         f.write(f"Function: {func_name}\n")
@@ -154,7 +128,7 @@ def log_df(df, comment=None, log_dir='report') -> pd.DataFrame:
     return df
 
 
-def log_stdout(comment=None, log_dir='report'):
+def log_stdout(comment=None, log_dir="report"):
     """
     A decorator factory that allows logging of a function's output to a file, with optional comments.
     Includes metadata about the call, such as the caller and source file names, function name, and execution timestamp.
@@ -177,7 +151,7 @@ def log_stdout(comment=None, log_dir='report'):
             except Exception as e:
                 caller_file = "unknown"
                 print(f"Could not determine caller's file: {e}")
-            timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             file_name = (
                 f"{timestamp}_{func.__name__}_"
                 f"{os.path.splitext(os.path.basename(caller_file))[0]}_"
@@ -186,7 +160,7 @@ def log_stdout(comment=None, log_dir='report'):
             file_path = os.path.join(log_dir, file_name)
 
             # Redirect stdout to capture print statements and function output
-            with open(file_path, 'w') as f, redirect_stdout(f):
+            with open(file_path, "w") as f, redirect_stdout(f):
                 if comment:  # Include the comment if provided
                     f.write(f"Comment: {comment}\n\n")
                 f.write(
@@ -203,7 +177,7 @@ def log_stdout(comment=None, log_dir='report'):
                     result = None
 
             # Optionally, also print to stdout for immediate feedback
-            with open(file_path, 'r') as f:
+            with open(file_path, "r") as f:
                 content = f.read()
                 print(content)
 
@@ -222,17 +196,17 @@ def sanitize_df(df, include_cols=None, exclude_cols=None, upper_case_cols=None, 
 
     Parameters:
     - df (pd.DataFrame): A Pandas DataFrame with columns to be sanitized.
-    - include_cols (list, optional): List of column names to be specifically included in sanitization.
-    - exclude_cols (list, optional): List of column names to be excluded from sanitization.
-    - upper_case_cols (list, optional): List of column names to be converted to uppercase.
-    - lower_case_cols (list, optional): List of column names to be converted to lowercase.
+    - include_cols (list, optional): list of column names to be specifically included in sanitization.
+    - exclude_cols (list, optional): list of column names to be excluded from sanitization.
+    - upper_case_cols (list, optional): list of column names to be converted to uppercase.
+    - lower_case_cols (list, optional): list of column names to be converted to lowercase.
     - verbose (bool, optional): If True, prints detailed information about the sanitization process.
 
     Returns:
     - pd.DataFrame: A Pandas DataFrame with sanitized object type columns.
     """
     # Define replacements for non-ASCII characters
-    replacements = {'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'ß': 'ss', 'ñ': 'n'}
+    replacements = {"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss", "ñ": "n"}
 
     # Initialize optional parameters as empty lists if None
     include_cols = include_cols or []
@@ -253,12 +227,12 @@ def sanitize_df(df, include_cols=None, exclude_cols=None, upper_case_cols=None, 
 
         # Report non-ASCII characters
         print("Non-ASCII Characters Overview:")
-        for column in df.select_dtypes(include=['object']).columns:
+        for column in df.select_dtypes(include=["object"]).columns:
             if column in exclude_cols:
                 continue  # Skip columns in exclude_cols
             # remove NA records from df[column] and check for non-ASCII characters
             non_ascii_mask = df[column].notna() & (
-                df[column] != df[column].str.encode('ascii', 'ignore').str.decode('ascii')
+                df[column] != df[column].str.encode("ascii", "ignore").str.decode("ascii")
             )
 
             if non_ascii_mask.any():
@@ -274,10 +248,10 @@ def sanitize_df(df, include_cols=None, exclude_cols=None, upper_case_cols=None, 
 
     # Processing columns
     for column in df.columns:
-        if column in exclude_cols or df[column].dtype != 'object':
+        if column in exclude_cols or df[column].dtype != "object":
             continue
 
-        df[column] = df[column].fillna('')  # Handle NaN values by replacing them with an empty string temporarily
+        df[column] = df[column].fillna("")  # Handle NaN values by replacing them with an empty string temporarily
 
         if column in upper_case_cols:
             df[column] = df[column].str.upper()
@@ -293,7 +267,7 @@ def sanitize_df(df, include_cols=None, exclude_cols=None, upper_case_cols=None, 
             for original, replacement in replacements.items():
                 df[column] = df[column].str.replace(original, replacement, regex=False)
 
-        df[column] = df[column].replace('', np.nan)  # Revert temporary empty strings back to NaN
+        df[column] = df[column].replace("", np.nan)  # Revert temporary empty strings back to NaN
 
         if verbose:
             print(f"Sanitized column: {column}\n")
@@ -381,7 +355,7 @@ def expand_dates_to_range(
     freq: str = "MS",
     inclusive: bool = False,
     inplace: bool = False,
-    include_boundries: str = 'both',
+    include_boundries: str = "both",
 ) -> pd.DataFrame:
     """
     Adds a column to the DataFrame that contains a list of dates in a specified format
@@ -469,14 +443,14 @@ def read_data_files(
     separate: bool = False,
     add_src_file_name_column: bool = True,
     delete_empty_files: bool = False,
-) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+) -> Union[pd.DataFrame, dict[str, pd.DataFrame]]:
     """
     Reads data files from a directory, concatenates them into a DataFrame, or returns a dict of DataFrames.
 
     Parameters:
         directory_path (str): Path to the directory containing the data files.
         src_col_name (str, optional): Name for the column indicating the source file. Defaults to 'src_file_name'.
-        file_types (list, optional): List of file extensions to read. Defaults to ['.csv', '.tsv'].
+        file_types (list, optional): list of file extensions to read. Defaults to ['.csv', '.tsv'].
         delimiter_map (dict, optional): Map of file extensions to their delimiters.
         Defaults to {'.csv': ',', '.tsv': '\t'}.
         encoding (str, optional): Encoding for the files. Defaults to 'utf-8'.
@@ -489,7 +463,7 @@ def read_data_files(
         add_src_file_name_column (bool, optional): Add a column with the source file name. Defaults to True.
 
     Returns:
-        Union[pd.DataFrame, Dict[str, pd.DataFrame]]: A single DataFrame or a dictionary of DataFrames.
+        Union[pd.DataFrame, dict[str, pd.DataFrame]]: A single DataFrame or a dictionary of DataFrames.
 
     The function scans the specified directory for files matching the given extensions, reads them according to the
     specified parameters, and combines them into a single DataFrame unless 'separate' is True, in which case it returns
@@ -553,12 +527,12 @@ def read_data_files(
         return pd.concat(dfs, ignore_index=True)
 
 
-def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
+def list_to_string(main_df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
     """Convert a list column to string in a Pandas DataFrame
 
     Args:
         main_df (pd.DataFrame): The input DataFrame
-        cols (List[str]): The list of column names to convert to string
+        cols (list[str]): The list of column names to convert to string
 
     Returns:
         pd.DataFrame: A new DataFrame with the specified columns converted to string
@@ -581,7 +555,7 @@ def list_to_string(main_df: pd.DataFrame, cols: List[str]) -> pd.DataFrame:
 
 def table(
     df: pd.DataFrame,
-    viz_cols: Union[str, List[str]] = [],
+    viz_cols: Union[str, list[str]] = [],
     n_cols: int = 3,
     descriptive: bool = False,
     transpose_des: bool = True,
@@ -593,51 +567,39 @@ def table(
     sample_size: int = 3,
 ) -> None:
     """
-    Prints basic dataframe stats in a tabular form, visualizes columns, and provides descriptive statistics.
-    This function is designed for exploratory data analysis (EDA) to get a first overview and sample of the dataframe.
+    Prints basic dataframe statistics, visualizes specified columns, and provides descriptive statistics for EDA.
 
     Args:
-        df (pd.DataFrame): Dataframe of interest.
-        columns (Union[str, List[str]], optional): List of columns to visualize. If None, no visualization is performed.
-            If 'all', visualize all columns.
-            If a single string is passed, visualize that single column. Defaults to None.
-        n_cols (int, optional): Number of columns in the grid for visualizing the columns.
-        If set to 0, each column will be displayed in a separate plot. Defaults to 3.
-        descriptive (bool, optional): If True, print descriptive statistics. Defaults to False.
+        df (pd.DataFrame): The dataframe to analyze.
+        viz_cols (Union[str, list[str]], optional): Columns to visualize. If empty list, no visualization is done.
+            If 'all', visualize all columns. A single string visualizes that column. Defaults to [].
+        n_cols (int, optional): Number of columns in the grid for visualizing columns. If 0, each column is
+            displayed in a separate plot. Defaults to 3.
+        descriptive (bool, optional): If True, display descriptive statistics. Defaults to False.
         transpose_des (bool, optional): If True, transpose the descriptive statistics table. Defaults to True.
-        corr (bool, optional): If True, print the correlation matrix. Defaults to False.
-        sns_corr (bool, optional): If True, display a correlation matrix heatmap using Seaborn.
-        If False, display the correlation matrix as a table. Defaults to False.
-        max_list_len (int, optional): Maximum length of a list to be displayed in the "unique values" column.
-        If the number of unique values in a column exceeds this threshold, only the count of unique values is
-        shown. Defaults to 10.
-        max_concat_list_len (int, optional): Maximum length of a concatenated list to be displayed in the
-        "unique values" column. If the concatenated unique values string exceeds this threshold, it will be truncated
-        and ellipses will be added. Defaults to 70.
-        seed (int, optional): Seed value for reproducible sampling. Defaults to 42.
+        corr (bool, optional): If True, display the correlation matrix as a table. Defaults to False.
+        sns_corr (bool, optional): If True, display a correlation matrix heatmap using Seaborn. Defaults to False.
+        max_list_len (int, optional): Maximum length of list to display unique values in the table. Defaults to 10.
+        max_concat_list_len (int, optional): Maximum length of concatenated unique values string. Defaults to 70.
+        seed (int, optional): Seed for reproducible random sampling. Defaults to 42.
+        sample_size (int, optional): Number of sample rows to display. Defaults to 3.
 
     Returns:
         None
 
     Displays:
-        - A table containing basic statistics of the dataframe, including the number of records, column names, data
-        types,
-          the number of unique values or the count of unique values if it exceeds the threshold, the number of missing
-          values,
-          and the count of zeros or falses in each column.
-        - A sample of the dataframe, with reproducible random sampling based on the seed value.
-        - Descriptive statistics such as count, mean, standard deviation, minimum, quartiles, and maximum values for
-        each numeric column in the dataframe (if `descriptive` is True).
-        - A correlation matrix or a correlation matrix heatmap using Seaborn (if `corr` or `sns_corr` is True).
-        - Histograms for numeric columns and bar plots for categorical columns (if `columns` is not None).
+        - A table with basic stats: column names, data types, unique values (or count), missing values, zeros/falses.
+        - A random sample of the dataframe, controlled by `sample_size`.
+        - Descriptive statistics for numeric columns if `descriptive` is True (mean, std, min, quartiles, max).
+        - A correlation matrix table if `corr` is True, or a heatmap if `sns_corr` is True.
+        - Histograms for numeric columns and bar plots for categorical columns based on `viz_cols`.
 
-    Note:
-        - The function utilizes the `tabulate` library for creating the table, and requires the `display` and `Markdown`
-          modules from the IPython library for displaying the table and sample data in a Jupyter Notebook.
-        - If `n_cols` is greater than 10, a warning will be issued and no plots will be created.
-        - Warnings may also be issued if specified columns do not exist in the dataframe, or if all numeric or
-        categorical
-          columns have only one unique value.
+    Notes:
+        - Uses the `tabulate` library for table creation and `IPython.display` for Markdown formatting.
+        - If `n_cols` > 10, a warning is issued, and no plots are created.
+        - Warnings are issued if `viz_cols` does not exist or all numeric/categorical columns have only one unique
+        value.
+        - Handles both single and multi-axis plots by flattening subplot arrays when necessary.
     """
 
     # Identify columns that contain lists or arrays
@@ -647,73 +609,67 @@ def table(
     if list_cols:
         df = list_to_string(df, list_cols)
 
-    rows: List[List] = []  # initialize an empty list to store rows
+    rows: list[list] = []  # initialize an empty list to store rows
 
     # Loop through each column in the dataframe and create a row for the table
     for row_no, col in enumerate(df):
         # Assign the row number, column name, and dtype
-        row: List = [row_no, col, str(df[col].dtype)]
+        row: list = [row_no, col, str(df[col].dtype)]
 
-        # Depending on the data type and number of unique values in the column, extend the row with either:
-        #   - the number of unique values (if the column is an array)
-        #   - the number of unique values (if the number of unique values is above the threshold)
-        #   - the unique values themselves (if the number of unique values is below the threshold)
+        total_rows = len(df)
+        num_nans = df[col].isna().sum()
+        rel_freq_nans = (num_nans / total_rows) * 100
+
         if isinstance(df[col].iloc[0], np.ndarray):
             col_transformed: pd.Series = pd.Series(
                 [",".join(map(str, arr)) for arr in df[col]]
             ).sort_values()  # convert array values to a string with elements separated by commas
-            row.extend([f"{col_transformed.nunique():_}"])  # add the number of unique values to the row
+            nunique = col_transformed.nunique()
+            num_zeros = len(df) - np.count_nonzero(col_transformed)
+            rel_freq_zeros = (num_zeros / total_rows) * 100
+
             row.extend(
-                [
-                    f"{col_transformed.isna().sum():_}",  # add the number of NAs in the column to the row
-                    f"{len(df) - np.count_nonzero(col_transformed):_}",  # add the number of zeros and falses in the
-                    # column to the row
-                ]
+                [f"{nunique:_}", f"{num_nans:_}", f"{rel_freq_nans:.2f}%", f"{num_zeros:_}", f"{rel_freq_zeros:.2f}%"]
             )
         elif df[col].nunique() > max_list_len:
-            row.extend([f"{df[col].nunique():_}"])  # add the number of unique values to the row
+            nunique = df[col].nunique()
+            num_zeros = len(df) - np.count_nonzero(df[col])
+            rel_freq_zeros = (num_zeros / total_rows) * 100
+
             row.extend(
-                [
-                    f"{df[col].isna().sum():_}",  # add the number of NAs in the column to the row
-                    f"{len(df) - np.count_nonzero(df[col]):_}",  # add the number of zeros and falses in the column to
-                    # the row
-                ]
+                [f"{nunique:_}", f"{num_nans:_}", f"{rel_freq_nans:.2f}%", f"{num_zeros:_}", f"{rel_freq_zeros:.2f}%"]
             )
         else:
-            # unique_values: List = sorted(list(df[col].unique()))  # sort the unique values
-            unique_values: List = sorted(
+            unique_values: list = sorted(
                 [str(val) for val in df[col].unique()]
-            )  # cast to string before sorting (otherwise comparisson fails)
+            )  # cast to string before sorting (otherwise comparison fails)
             unique_values_concat: str = ", ".join(
                 map(str, unique_values)
             )  # concatenate the unique values into a string
             if len(unique_values_concat) > max_concat_list_len:
-                unique_values_concat = f"{unique_values_concat[:max_concat_list_len-3]}.."  # add three dots if the
-                # concatenated values exceed the threshold
-            # concatenate nunique to unique_values_concat
+                unique_values_concat = f"{unique_values_concat[:max_concat_list_len-3]}.."
             unique_values_concat = f"{df[col].nunique()}/{unique_values_concat}"
-            row.append(unique_values_concat)  # add the list of unique values to the row
-            row.extend(
-                [
-                    f"{df[col].isna().sum():_}",  # add the number of NAs in the column to the row
-                    f"{len(df) - np.count_nonzero(df[col]):_}",  # add the number of zeros and falses in the column to
-                    # the row
-                ]
-            )
+            num_zeros = len(df) - np.count_nonzero(df[col])
+            rel_freq_zeros = (num_zeros / total_rows) * 100
+
+            row.append(unique_values_concat)
+            row.extend([f"{num_nans:_}", f"{rel_freq_nans:.2f}%", f"{num_zeros:_}", f"{rel_freq_zeros:.2f}%"])
+
         # Append the row to the rows list
         rows.append(row)
 
     # Create and print table using the tabulate library
     table: str = tabulate(
         rows,
-        headers=["n", "col_name", "dtype", "nunique/u_vals", "NAs", "0s/Fs"],
+        headers=["n", "col_name", "dtype", "nunique/u_vals", "NAs", "NA %", "0s/Fs", "0s/Fs %"],
         tablefmt="pipe",
     )
 
     # Print the table and a sample of the dataframe
     display(Markdown(f"**Dataframe info:** Number of records: {len(df):_}"))
-    # display(Markdown(table))
     print(table)
+
+    # Display a sample of the dataframe
     sample = df.sample(sample_size, random_state=seed) if len(df) > sample_size else df
     display(Markdown("**Sample data:**"))
     display(sample)
@@ -728,12 +684,25 @@ def table(
         display(Markdown("**Descriptive statistics:**"))
 
         # Remove count from the descriptive statistics table
-        df_des = df.describe(include="all").drop("count", axis=0)
+        df_des = df.describe(include="all", datetime_is_numeric=True).drop("count", axis=0)
 
+        # Define a styling function to replace NaN values with empty strings and format floats to 2 decimal places
+        def style_func(val):
+            if pd.isna(val):
+                return ""
+            elif isinstance(val, float):
+                return f"{val:.2f}"
+            else:
+                return val
+
+        # Apply the styling function to the descriptive statistics DataFrame
         if transpose_des:
-            display(df_des.T)
+            styled_df = df_des.T.style.format(style_func)
         else:
-            display(df_des)
+            styled_df = df_des.style.format(style_func)
+
+        # Display the styled descriptive statistics
+        display(styled_df)
 
     # Print information about the DataFrame including the index dtype and column dtypes, non-null values and memory
     # usage.
@@ -759,7 +728,7 @@ def table(
         warnings.filterwarnings("ignore", category=MatplotlibDeprecationWarning)
         plt.figure(figsize=(10, 8))
         plt.grid(False)  # Turn off grid lines
-        sns.heatmap(df.corr(), annot=True, fmt=".2f", cmap="magma")
+        sns.heatmap(df.corr(numeric_only=True), annot=True, fmt=".2f", cmap="magma")
         plt.show()
         warnings.filterwarnings("default", category=MatplotlibDeprecationWarning)
 
@@ -832,13 +801,20 @@ def table(
         display(Markdown("**Histograms of numeric columns:**"))
         n_rows = math.ceil(len(numeric_cols) / n_cols)  # Calculate number of rows needed
         fig, axs = plt.subplots(n_rows, n_cols, figsize=(20, 5 * n_rows))
-        axs = axs.ravel()  # Flatten the axes array
+
+        # Flatten the axes array if it exists, else make it a list
+        if isinstance(axs, np.ndarray):
+            axs = axs.flatten()
+        else:
+            axs = [axs]
+
         for i in range(n_rows * n_cols):
             if i < len(numeric_cols):
                 sns.histplot(data=df, x=numeric_cols[i], ax=axs[i])
                 axs[i].set_title(f"Histogram of {numeric_cols[i]}", fontsize=12)
             else:
                 fig.delaxes(axs[i])  # Delete the unused axes
+
         plt.tight_layout()  # Adjusts subplot params to give specified padding
         plt.show()
 
@@ -847,15 +823,22 @@ def table(
         display(Markdown("**Bar plots of categorical columns:**"))
         n_rows = math.ceil(len(categorical_cols) / n_cols)  # Calculate number of rows needed
         fig, axs = plt.subplots(n_rows, n_cols, figsize=(20, 5 * n_rows))
-        axs = axs.ravel()  # Flatten the axes array
+
+        # Flatten the axes array if it exists, else make it a list
+        if isinstance(axs, np.ndarray):
+            axs = axs.flatten()
+        else:
+            axs = [axs]
+
         for i in range(n_rows * n_cols):
             if i < len(categorical_cols):
                 counts = df[categorical_cols[i]].value_counts().nlargest(20)
                 sns.barplot(x=counts.index, y=counts, ax=axs[i], palette="magma")
                 axs[i].set_title(f"Bar plot of {categorical_cols[i]}", fontsize=12)
-                plt.xticks(rotation=45, ha="right")
+                axs[i].tick_params(axis="x", rotation=45)
             else:
                 fig.delaxes(axs[i])  # Delete the unused axes
+
         plt.tight_layout()  # Adjusts subplot params to give specified padding
         plt.show()
 
@@ -884,17 +867,17 @@ def all_lists_to_string(main_df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def flatten_multiindex(df: pd.DataFrame) -> List[str]:
+def flatten_multiindex(df: pd.DataFrame) -> list[str]:
     """Flatten and reverse multiindex columns
 
     Args:
         df (pd.DataFrame): The input DataFrame with multi-index columns
 
     Returns:
-        List[str]: A list of column names with flattened multi-index
+        list[str]: A list of column names with flattened multi-index
     """
     # Combine the first and second level column names into a single string with an underscore separator
-    cols: List[str] = ["_".join(col).strip("_") for col in df.columns.values]
+    cols: list[str] = ["_".join(col).strip("_") for col in df.columns.values]
 
     # Return the list of column names
     return cols
