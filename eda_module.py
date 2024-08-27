@@ -661,7 +661,7 @@ def table(
     # Create and print table using the tabulate library
     table: str = tabulate(
         rows,
-        headers=["n", "col_name", "dtype", "nunique/u_vals", "NAs", "NA %", "0s/Fs", "0s/Fs %"],
+        headers=["n", "col_name", "dtype", "nunique/u_vals", "NAs", "NAs%", "0s/Fs", "0s/Fs%"],
         tablefmt="pipe",
     )
 
@@ -683,26 +683,49 @@ def table(
         # Print descriptive statistics
         display(Markdown("**Descriptive statistics:**"))
 
-        # Remove count from the descriptive statistics table
-        df_des = df.describe(include="all", datetime_is_numeric=True).drop("count", axis=0)
+        # Generate and display descriptive statistics for categorical columns
+        categorical_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+        if categorical_cols:
+            df_des_cat = df[categorical_cols].describe(include="all").drop("count", axis=0)
 
-        # Define a styling function to replace NaN values with empty strings and format floats to 2 decimal places
-        def style_func(val):
-            if pd.isna(val):
-                return ""
-            elif isinstance(val, float):
-                return f"{val:.2f}"
+            # Calculate relative frequency for the most common value in each categorical column
+            for col in categorical_cols:
+                total = df[col].count()
+                most_freq_val = df_des_cat.at["freq", col] if "freq" in df_des_cat.index else np.nan
+                if pd.notna(most_freq_val):
+                    rel_freq = (most_freq_val / total) * 100
+                    df_des_cat.at["rel_freq", col] = f"{rel_freq:.2f}%"
+                else:
+                    df_des_cat.at["rel_freq", col] = np.nan
+
+            if transpose_des:
+                display(Markdown("**Categorical Columns Descriptive Statistics (Transposed):**"))
+                display(df_des_cat.T)
             else:
-                return val
+                display(Markdown("**Categorical Columns Descriptive Statistics:**"))
+                display(df_des_cat)
 
-        # Apply the styling function to the descriptive statistics DataFrame
-        if transpose_des:
-            styled_df = df_des.T.style.format(style_func)
-        else:
-            styled_df = df_des.style.format(style_func)
+        # Generate and display descriptive statistics for numerical columns
+        numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
+        if numeric_cols:
+            df_des_num = df[numeric_cols].describe().drop("count", axis=0)
+            if transpose_des:
+                display(Markdown("**Numerical Columns Descriptive Statistics (Transposed):**"))
+                display(df_des_num.T)
+            else:
+                display(Markdown("**Numerical Columns Descriptive Statistics:**"))
+                display(df_des_num)
 
-        # Display the styled descriptive statistics
-        display(styled_df)
+        # Generate and display descriptive statistics for datetime columns
+        datetime_cols = df.select_dtypes(include=["datetime"]).columns.tolist()
+        if datetime_cols:
+            df_des_datetime = df[datetime_cols].describe(datetime_is_numeric=True).drop("count", axis=0)
+            if transpose_des:
+                display(Markdown("**Datetime Columns Descriptive Statistics (Transposed):**"))
+                display(df_des_datetime.T)
+            else:
+                display(Markdown("**Datetime Columns Descriptive Statistics:**"))
+                display(df_des_datetime)
 
     # Print information about the DataFrame including the index dtype and column dtypes, non-null values and memory
     # usage.
