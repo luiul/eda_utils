@@ -633,7 +633,7 @@ def table(
             )
         elif df[col].nunique() > max_list_len:
             nunique = df[col].nunique()
-            num_zeros = len(df) - np.count_nonzero(df[col])
+            num_zeros = (df[col] == False).sum()
             rel_freq_zeros = (num_zeros / total_rows) * 100
 
             row.extend(
@@ -649,7 +649,7 @@ def table(
             if len(unique_values_concat) > max_concat_list_len:
                 unique_values_concat = f"{unique_values_concat[:max_concat_list_len-3]}.."
             unique_values_concat = f"{df[col].nunique()}/{unique_values_concat}"
-            num_zeros = len(df) - np.count_nonzero(df[col])
+            num_zeros = (df[col] == False).sum()
             rel_freq_zeros = (num_zeros / total_rows) * 100
 
             row.append(unique_values_concat)
