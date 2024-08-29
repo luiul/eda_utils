@@ -629,7 +629,7 @@ def table(
             rel_freq_zeros = (num_zeros / total_rows) * 100
 
             row.extend(
-                [f"{nunique:_}", f"{num_nans:_}", f"{rel_freq_nans:.2f}%", f"{num_zeros:_}", f"{rel_freq_zeros:.2f}%"]
+                [f"{nunique:_}", f"{num_nans:_}", f"{num_zeros:_}", f"{rel_freq_nans:.2f}%", f"{rel_freq_zeros:.2f}%"]
             )
         elif df[col].nunique() > max_list_len:
             nunique = df[col].nunique()
@@ -637,7 +637,7 @@ def table(
             rel_freq_zeros = (num_zeros / total_rows) * 100
 
             row.extend(
-                [f"{nunique:_}", f"{num_nans:_}", f"{rel_freq_nans:.2f}%", f"{num_zeros:_}", f"{rel_freq_zeros:.2f}%"]
+                [f"{nunique:_}", f"{num_nans:_}", f"{num_zeros:_}", f"{rel_freq_nans:.2f}%", f"{rel_freq_zeros:.2f}%"]
             )
         else:
             unique_values: list = sorted(
@@ -653,7 +653,7 @@ def table(
             rel_freq_zeros = (num_zeros / total_rows) * 100
 
             row.append(unique_values_concat)
-            row.extend([f"{num_nans:_}", f"{rel_freq_nans:.2f}%", f"{num_zeros:_}", f"{rel_freq_zeros:.2f}%"])
+            row.extend([f"{num_nans:_}", f"{num_zeros:_}", f"{rel_freq_nans:.2f}%", f"{rel_freq_zeros:.2f}%"])
 
         # Append the row to the rows list
         rows.append(row)
@@ -661,7 +661,7 @@ def table(
     # Create and print table using the tabulate library
     table: str = tabulate(
         rows,
-        headers=["n", "col_name", "dtype", "nunique/u_vals", "NAs", "NAs%", "0s/Fs", "0s/Fs%"],
+        headers=["n", "col_name", "dtype", "nunique/u_vals", "NAs", "0s/Fs", "NAs%", "0s/Fs%"],
         tablefmt="pipe",
     )
 
@@ -684,7 +684,7 @@ def table(
         display(Markdown("**Descriptive statistics:**"))
 
         # Generate and display descriptive statistics for categorical columns
-        categorical_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
+        categorical_cols = df.select_dtypes(include=["object", "category", "string"]).columns.tolist()
         if categorical_cols:
             df_des_cat = df[categorical_cols].describe(include="all").drop("count", axis=0)
 
